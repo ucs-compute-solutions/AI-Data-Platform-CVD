@@ -69,7 +69,8 @@ VAST; it is not copied into the CVD repository.
 ## 1. Prepare the site inputs
 
 ```bash
-git clone <cvd-repository-url> AI-Data-Platform-CVD
+git clone https://github.com/ucs-compute-solutions/AI-Data-Platform-CVD.git \
+  AI-Data-Platform-CVD
 cd AI-Data-Platform-CVD/workloads/vast-native-vss
 cp release-inputs.example.env release-inputs.env
 ${EDITOR:-vi} release-inputs.env
@@ -96,17 +97,20 @@ embedding endpoint and model, and Lightning endpoint and model. Keep
 profile.
 
 The private DataEngine pipeline Secret file follows the VAST blueprint
-`vss-cli-secret-file-template.yaml`. It supplies the same S3, model, and VASTDB
-settings plus `segment_duration: 5`. Store it outside Git, restrict its file
-permissions, and pass its path only to `deploy.sh`.
+[`deployments/dataengine-vss-ingest-pipeline/vss-cli-secret-file-template.yaml`](https://github.com/vast-data/vss-blueprint/blob/8b34c2c919edcec6b7bd51cf9ff09722d3dda879/deployments/dataengine-vss-ingest-pipeline/vss-cli-secret-file-template.yaml).
+It supplies the same S3, model, and VASTDB settings plus
+`segment_duration: 5`. Store it outside Git, restrict its file permissions,
+and pass its path only to `deploy.sh`.
 
 ## 2. Obtain and prepare the pinned source
 
 ```bash
 git clone https://github.com/vast-data/vss-blueprint.git \
   <vast-vss-source-directory>
-git -C <vast-vss-source-directory> checkout --detach \
+git -C <vast-vss-source-directory> fetch --depth 1 origin \
   8b34c2c919edcec6b7bd51cf9ff09722d3dda879
+git -C <vast-vss-source-directory> checkout --detach \
+  FETCH_HEAD
 git -C <vast-vss-source-directory> status --porcelain --untracked-files=all
 
 ./scripts/preflight.sh --env release-inputs.env

@@ -262,7 +262,7 @@ assert_no_inline_secrets() {
 }
 
 chart_version() {
-  helm show chart "$(chart_path "$1")" | awk '$1 == "version:" {print $2; exit}'
+  helm show chart "$(chart_path "$1")" | awk '/^version:[[:space:]]/ {print $2; exit}'
 }
 
 expected_ingest_image() {

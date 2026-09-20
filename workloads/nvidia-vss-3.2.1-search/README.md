@@ -38,7 +38,8 @@ The reviewed OpenShift patch is maintained at `patches/nvidia-vss-3.2.1-search/o
 ## Prepare the inputs
 
 ```bash
-git clone <cvd-repository-url> AI-Data-Platform-CVD
+git clone https://github.com/ucs-compute-solutions/AI-Data-Platform-CVD.git \
+  AI-Data-Platform-CVD
 cd AI-Data-Platform-CVD/workloads/nvidia-vss-3.2.1-search
 
 cp release-inputs.example.env release-inputs.env
@@ -68,8 +69,10 @@ git -C <nvidia-vss-source-directory> checkout --detach \
   7640d917047cf7b0fd3085eefb8282754b56bc94
 git -C <nvidia-vss-source-directory> rev-parse HEAD
 git -C <nvidia-vss-source-directory> status --porcelain --untracked-files=all
+CVD_REPOSITORY_ROOT=$(git rev-parse --show-toplevel)
 git -C <nvidia-vss-source-directory> apply --check \
-  <cvd-repository-root>/patches/nvidia-vss-3.2.1-search/openshift-v321.patch
+  "${CVD_REPOSITORY_ROOT}/patches/nvidia-vss-3.2.1-search/openshift-v321.patch"
+unset CVD_REPOSITORY_ROOT
 ```
 
 The commit must match `source-lock.yaml`, the status output must be empty, and
