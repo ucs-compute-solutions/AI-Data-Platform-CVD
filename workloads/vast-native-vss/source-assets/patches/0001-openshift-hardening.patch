@@ -1,0 +1,575 @@
+diff --git a/source-code/ingest/vastdb-writer/common/models.py b/source-code/ingest/vastdb-writer/common/models.py
+index 2962d0d..cb34a7f 100644
+--- a/source-code/ingest/vastdb-writer/common/models.py
++++ b/source-code/ingest/vastdb-writer/common/models.py
+@@ -13,6 +13,7 @@ class Settings(BaseModel):
+     vdbaccesskey: str
+     vdbsecretkey: str
+     vdbcollection: str
++    tls_ca_bundle: Optional[str] = None
+     
+     # For schema definition
+     embeddingdimensions: int
+@@ -21,8 +22,9 @@ class Settings(BaseModel):
+     @classmethod
+     def from_ctx_secrets(cls, secrets: Dict[str, str]) -> 'Settings':
+         """Load all settings from runtime context secrets"""
++        source = secrets["videoreasonsecret"]
+         field_names = cls.__annotations__.keys()
+-        config = {field: secrets["videoreasonsecret"][field] for field in field_names}
++        config = {field: source[field] for field in field_names if field in source}
+         return cls(**config)
+ 
+ 
+@@ -55,4 +57,3 @@ class EmbeddingEvent(BaseModel):
+     camera_id: str | None = None
+     capture_type: str | None = None
+     location: str | None = None
+-
+diff --git a/source-code/ingest/vastdb-writer/common/vastdb_client.py b/source-code/ingest/vastdb-writer/common/vastdb_client.py
+index 27a6515..08b8e56 100644
+--- a/source-code/ingest/vastdb-writer/common/vastdb_client.py
++++ b/source-code/ingest/vastdb-writer/common/vastdb_client.py
+@@ -59,7 +59,7 @@ class VastDBClient:
+             endpoint=endpoint,
+             access=self.settings.vdbaccesskey,
+             secret=self.settings.vdbsecretkey,
+-            ssl_verify=False
++            ssl_verify=self.settings.tls_ca_bundle or True,
+         )
+ 
+     def ensure_schema_and_table(self) -> bool:
+@@ -237,4 +237,3 @@ class VastDBClient:
+ 
+     def __exit__(self, exc_type, exc_val, exc_tb):
+         self.close()
+-
+diff --git a/source-code/ingest/vastdb-writer/requirements.in b/source-code/ingest/vastdb-writer/requirements.in
+new file mode 100644
+index 0000000..cd13639
+--- /dev/null
++++ b/source-code/ingest/vastdb-writer/requirements.in
+@@ -0,0 +1,9 @@
++cloudevents==1.10.1
++vastdb==1.3.2
++ibis-framework[duckdb]==9.0.0
++pyarrow
++pydantic==2.5.2
++pydantic-settings==2.1.0
++opentelemetry-api==1.38
++opentelemetry-sdk==1.38
++opentelemetry-exporter-otlp==1.38
+diff --git a/source-code/ingest/video-embedder/common/embedding_client.py b/source-code/ingest/video-embedder/common/embedding_client.py
+index 0ce3d5c..4cc1778 100644
+--- a/source-code/ingest/video-embedder/common/embedding_client.py
++++ b/source-code/ingest/video-embedder/common/embedding_client.py
+@@ -10,6 +10,7 @@ class EmbeddingClient:
+         self.model = settings.embeddingmodel
+         self.dimensions = settings.embeddingdimensions
+         self.nvidia_api_key = getattr(settings, "nvidia_api_key", None) or ""
++        self.tls_verify = settings.tls_ca_bundle or True
+         # embedding_local_nim only controls API key usage; always use configured host/port
+         self.is_cloud = not getattr(settings, "embedding_local_nim", False)
+         self.base_url = f"{settings.embeddinghttpscheme}://{settings.embeddinghost}:{settings.embeddingport}/v1"
+@@ -38,7 +39,13 @@ class EmbeddingClient:
+         logging.info(f"[EMBEDDING] Request URL: {request_url}")
+         logging.info(f"[EMBEDDING] Model: {self.model}, texts_count: {len(texts)}")
+         
+-        response = requests.post(request_url, json=payload, headers=headers, timeout=60)
++        response = requests.post(
++            request_url,
++            json=payload,
++            headers=headers,
++            timeout=60,
++            verify=self.tls_verify,
++        )
+ 
+         if response.status_code != 200:
+             logging.error(f"[EMBEDDING] NIM API Error {response.status_code}: {response.text}")
+@@ -56,4 +63,3 @@ class EmbeddingClient:
+             logging.info(f"[EMBEDDING] Embedding data type: {type(embeddings[0][0])}")
+         
+         return embeddings
+-
+diff --git a/source-code/ingest/video-embedder/common/models.py b/source-code/ingest/video-embedder/common/models.py
+index ed8136c..3115037 100644
+--- a/source-code/ingest/video-embedder/common/models.py
++++ b/source-code/ingest/video-embedder/common/models.py
+@@ -14,6 +14,7 @@ class Settings(BaseModel):
+     embeddingmodel: str
+     embeddingdimensions: int
+     nvidia_api_key: Optional[str] = None  # Optional NVIDIA Cloud API key
++    tls_ca_bundle: Optional[str] = None
+     
+     @classmethod
+     def from_ctx_secrets(cls, secrets: Dict[str, str]) -> 'Settings':
+@@ -86,4 +87,3 @@ class EmbeddingResult(BaseModel):
+     
+     # Analysis scenario metadata
+     scenario: str | None = None
+-
+diff --git a/source-code/ingest/video-embedder/requirements.in b/source-code/ingest/video-embedder/requirements.in
+new file mode 100644
+index 0000000..e23942e
+--- /dev/null
++++ b/source-code/ingest/video-embedder/requirements.in
+@@ -0,0 +1,7 @@
++cloudevents==1.10.1
++requests==2.31.0
++pydantic==2.5.2
++pydantic-settings==2.1.0
++opentelemetry-api==1.38
++opentelemetry-sdk==1.38
++opentelemetry-exporter-otlp==1.38
+diff --git a/source-code/ingest/video-reasoner/common/clients.py b/source-code/ingest/video-reasoner/common/clients.py
+index 251e7eb..70a09f2 100644
+--- a/source-code/ingest/video-reasoner/common/clients.py
++++ b/source-code/ingest/video-reasoner/common/clients.py
+@@ -66,7 +66,7 @@ class S3Client:
+             endpoint_url=settings.s3endpoint,
+             aws_access_key_id=settings.s3accesskey,
+             aws_secret_access_key=settings.s3secretkey,
+-            verify=False
++            verify=settings.tls_ca_bundle or True,
+         )
+     
+     def download_file(self, bucket: str, key: str) -> bytes:
+@@ -93,6 +93,7 @@ class CosmosReasoningClient:
+         self.settings = settings
+         self.cosmos_url = settings.cosmos_url
+         self.session = requests.Session()
++        self.session.verify = settings.tls_ca_bundle or True
+         
+         # Initialize tracer
+         self.tracer = trace.get_tracer(__name__)
+@@ -362,6 +363,7 @@ class NemotronReasoningClient:
+             self.endpoint_base = f"{self.endpoint_base}/v1"
+         self.endpoint_url = f"{self.endpoint_base}/chat/completions"
+         self.session = requests.Session()
++        self.session.verify = settings.tls_ca_bundle or True
+         
+         # Initialize tracer
+         self.tracer = trace.get_tracer(__name__)
+@@ -560,4 +562,3 @@ class NemotronReasoningClient:
+ 
+     def __exit__(self, exc_type, exc_val, exc_tb):
+         self.close()
+-
+diff --git a/source-code/ingest/video-reasoner/common/models.py b/source-code/ingest/video-reasoner/common/models.py
+index 384de59..42dae0f 100644
+--- a/source-code/ingest/video-reasoner/common/models.py
++++ b/source-code/ingest/video-reasoner/common/models.py
+@@ -10,6 +10,7 @@ class Settings(BaseModel):
+     s3accesskey: str
+     s3secretkey: str
+     s3endpoint: str
++    tls_ca_bundle: Optional[str] = None
+     
+     # Provider selection: "cosmos" or "nemotron"
+     reasoning_provider: str = Field(default="cosmos", description="Reasoning provider: 'cosmos' or 'nemotron'")
+@@ -77,4 +78,3 @@ class VideoReasoningResult(BaseModel):
+     camera_id: str | None = None
+     capture_type: str | None = None
+     location: str | None = None
+-
+diff --git a/source-code/ingest/video-reasoner/requirements.in b/source-code/ingest/video-reasoner/requirements.in
+new file mode 100644
+index 0000000..c5178c2
+--- /dev/null
++++ b/source-code/ingest/video-reasoner/requirements.in
+@@ -0,0 +1,11 @@
++cloudevents==1.10.1
++boto3==1.34.0
++botocore==1.34.0
++requests==2.31.0
++opencv-python-headless==4.10.0.84
++numpy==1.26.4
++pydantic==2.5.2
++pydantic-settings==2.1.0
++opentelemetry-api==1.38
++opentelemetry-sdk==1.38
++opentelemetry-exporter-otlp==1.38
+diff --git a/source-code/ingest/video-segmenter/common/clients.py b/source-code/ingest/video-segmenter/common/clients.py
+index 3b66dcf..8ee74fd 100644
+--- a/source-code/ingest/video-segmenter/common/clients.py
++++ b/source-code/ingest/video-segmenter/common/clients.py
+@@ -14,7 +14,7 @@ class S3Client:
+             endpoint_url=settings.s3endpoint,
+             aws_access_key_id=settings.s3accesskey,
+             aws_secret_access_key=settings.s3secretkey,
+-            verify=False
++            verify=settings.tls_ca_bundle or True,
+         )
+     
+     def head_object(self, bucket: str, key: str) -> dict[str, Any]:
+@@ -131,4 +131,3 @@ class S3Client:
+         except Exception as e:
+             logging.error(f"Unexpected error fetching ACL for s3://{bucket}/{key}: {e}")
+             return [], []
+-
+diff --git a/source-code/ingest/video-segmenter/common/models.py b/source-code/ingest/video-segmenter/common/models.py
+index cb1c569..ca99351 100644
+--- a/source-code/ingest/video-segmenter/common/models.py
++++ b/source-code/ingest/video-segmenter/common/models.py
+@@ -10,6 +10,7 @@ class Settings(BaseModel):
+     s3accesskey: str
+     s3secretkey: str
+     s3endpoint: str
++    tls_ca_bundle: Optional[str] = None
+     
+     # Video processing settings
+     segment_duration: int = 5  # seconds
+@@ -81,4 +82,3 @@ class VideoSegmentInfo(BaseModel):
+     end_time: float
+     segment_key: str
+     segment_size: int
+-
+diff --git a/source-code/ingest/video-segmenter/requirements.in b/source-code/ingest/video-segmenter/requirements.in
+new file mode 100644
+index 0000000..5751c79
+--- /dev/null
++++ b/source-code/ingest/video-segmenter/requirements.in
+@@ -0,0 +1,11 @@
++cloudevents==1.10.1
++boto3==1.34.0
++botocore==1.34.0
++requests==2.31.0
++moviepy==1.0.3
++imageio-ffmpeg==0.4.9
++pydantic==2.5.2
++pydantic-settings==2.1.0
++opentelemetry-api==1.38
++opentelemetry-sdk==1.38
++opentelemetry-exporter-otlp==1.38
+diff --git a/source-code/retrieval/video-backend/Dockerfile b/source-code/retrieval/video-backend/Dockerfile
+index f3128c9..a516f2f 100644
+--- a/source-code/retrieval/video-backend/Dockerfile
++++ b/source-code/retrieval/video-backend/Dockerfile
+@@ -1,33 +1,31 @@
+-# Vast VSS Blueprint Backend Dockerfile
+-FROM python:3.10-slim
+-
++ARG PYTHON_IMAGE=python:3.11.16-slim-bookworm@sha256:0bee7276f83efd4a1ee05bbbf4281d95ed28e079220a9457f25a93e3f1e3c31b
++
++FROM ${PYTHON_IMAGE} AS build
++ENV PIP_DISABLE_PIP_VERSION_CHECK=1 \
++    PIP_NO_CACHE_DIR=1
++WORKDIR /build
++RUN python -m venv /opt/venv
++ENV PATH=/opt/venv/bin:${PATH}
++COPY requirements.lock ./requirements.lock
++RUN pip install --require-hashes --only-binary=:all: -r requirements.lock
++
++FROM ${PYTHON_IMAGE} AS runtime
++ENV PATH=/opt/venv/bin:${PATH} \
++    PYTHONDONTWRITEBYTECODE=1 \
++    PYTHONUNBUFFERED=1 \
++    PYTHONPATH=/app
+ WORKDIR /app
+ 
+-# Install system dependencies
+-RUN apt-get update && apt-get install -y \
+-    gcc \
+-    g++ \
+-    && rm -rf /var/lib/apt/lists/*
+-
+-# Copy requirements and install Python dependencies
+-COPY requirements.txt .
+-RUN pip install --no-cache-dir -r requirements.txt
+-
+-# Copy application code
++COPY --from=build /opt/venv /opt/venv
+ COPY src/ ./src/
+-
+-# Copy ADBC driver (assumes libadbc_driver_vastdb.so is in build context)
+-RUN mkdir -p /opt/adbc-driver
+ COPY libadbc_driver_vastdb.so /opt/adbc-driver/libadbc_driver_vastdb.so
+-RUN chmod 755 /opt/adbc-driver/libadbc_driver_vastdb.so
+ 
+-# Expose port
+-EXPOSE 8000
+-
+-# Set environment variables
+-ENV PYTHONUNBUFFERED=1
+-ENV PYTHONPATH=/app
++RUN printf '%s  %s\n' \
++      '675d960f20f13f51ec7b142290c9eae69851e4833269e479604400829cbe71d6' \
++      '/opt/adbc-driver/libadbc_driver_vastdb.so' | sha256sum -c - \
++    && chgrp -R 0 /app /opt/venv /opt/adbc-driver \
++    && chmod -R g=u /app /opt/venv /opt/adbc-driver
+ 
+-# Run the application
++USER 10001
++EXPOSE 8000
+ CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+-
+diff --git a/source-code/retrieval/video-backend/requirements.in b/source-code/retrieval/video-backend/requirements.in
+new file mode 100644
+index 0000000..394b698
+--- /dev/null
++++ b/source-code/retrieval/video-backend/requirements.in
+@@ -0,0 +1,18 @@
++# Direct dependencies supplied by VAST at commit 8b34c2c.
++fastapi==0.109.0
++uvicorn[standard]==0.27.0
++pydantic==2.5.3
++pydantic-settings==2.1.0
++python-multipart==0.0.6
++pyjwt==2.8.0
++cryptography==41.0.7
++vastdb==1.1.0
++adbc-driver-manager==1.0.0
++boto3==1.34.22
++pyarrow==15.0.0
++pandas==2.1.4
++requests==2.31.0
++httpx==0.26.0
++pyyaml==6.0.1
++vastpy==0.1.0
++python-json-logger==2.0.7
+diff --git a/source-code/retrieval/video-backend/src/config.py b/source-code/retrieval/video-backend/src/config.py
+index 790cbc7..cd844c3 100644
+--- a/source-code/retrieval/video-backend/src/config.py
++++ b/source-code/retrieval/video-backend/src/config.py
+@@ -68,6 +68,13 @@ class Settings(BaseSettings):
+     vast_host: str = Field(..., description="VAST management server address (VMS) for user authentication")
+     tenant_name: str = Field(default="default", description="Tenant name for user authentication")
+     jwt_secret: str = Field(..., description="Secret for signing app JWT tokens (e.g. openssl rand -hex 32)")
++
++    # Optional private-CA bundle for VMS, VASTDB, S3, and local NIM HTTPS.
++    # When unset, clients use the image's system trust store.
++    tls_ca_bundle: Optional[str] = Field(
++        default=None,
++        description="Path to a mounted PEM CA bundle for outbound HTTPS verification",
++    )
+     
+     # CORS Settings (defaults only, not required in secret)
+     cors_origins: list[str] = Field(
+@@ -109,4 +116,3 @@ def get_settings() -> Settings:
+             print("📄 Loading configuration from environment variables")
+             _settings = Settings()
+     return _settings
+-
+diff --git a/source-code/retrieval/video-backend/src/services/auth_service.py b/source-code/retrieval/video-backend/src/services/auth_service.py
+index 26f52e2..85d29c5 100644
+--- a/source-code/retrieval/video-backend/src/services/auth_service.py
++++ b/source-code/retrieval/video-backend/src/services/auth_service.py
+@@ -3,7 +3,6 @@ Authentication service for VAST system integration
+ """
+ import logging
+ import time
+-import urllib3
+ from datetime import datetime, timedelta, timezone
+ from typing import Annotated, Any, Dict, Optional
+ 
+@@ -17,7 +16,6 @@ from src.models.user import User
+ from src.services.retry import call_with_retry
+ 
+ logger = logging.getLogger(__name__)
+-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+ 
+ auth_scheme = api_key.APIKeyHeader(name="Authorization", auto_error=False)
+ 
+@@ -33,6 +31,7 @@ class AuthService:
+ 
+         self.tenant_name = settings.tenant_name or "default"
+         self.jwt_secret = settings.jwt_secret
++        self.tls_verify = settings.tls_ca_bundle or True
+         if not self.jwt_secret:
+             raise RuntimeError("jwt_secret is not configured -- refusing to start")
+ 
+@@ -102,7 +101,7 @@ class AuthService:
+                 lambda: requests.post(
+                     url,
+                     json={"username": username, "password": password},
+-                    verify=False,
++                    verify=self.tls_verify,
+                     timeout=VMS_TIMEOUT_SECONDS,
+                 ),
+                 operation=f"AUTH:vms_token:{url}",
+diff --git a/source-code/retrieval/video-backend/src/services/embedding_service.py b/source-code/retrieval/video-backend/src/services/embedding_service.py
+index 311f292..4a34c45 100644
+--- a/source-code/retrieval/video-backend/src/services/embedding_service.py
++++ b/source-code/retrieval/video-backend/src/services/embedding_service.py
+@@ -84,6 +84,7 @@ class EmbeddingService:
+                 self.embedding_url,
+                 headers=headers,
+                 json=payload,
++                verify=self.settings.tls_ca_bundle or True,
+                 timeout=30
+             )
+             
+@@ -125,4 +126,3 @@ def get_embedding_service() -> EmbeddingService:
+     if _embedding_service is None:
+         _embedding_service = EmbeddingService()
+     return _embedding_service
+-
+diff --git a/source-code/retrieval/video-backend/src/services/llm_service.py b/source-code/retrieval/video-backend/src/services/llm_service.py
+index 7a67b0f..8e3f8d9 100644
+--- a/source-code/retrieval/video-backend/src/services/llm_service.py
++++ b/source-code/retrieval/video-backend/src/services/llm_service.py
+@@ -204,7 +204,10 @@ Please synthesize this information to answer the user's query."""
+         max_rounds = max(0, int(self.max_continuations)) + 1
+         finish_reason = None
+ 
+-        with httpx.Client(timeout=self.timeout) as client:
++        with httpx.Client(
++            timeout=self.timeout,
++            verify=self.settings.tls_ca_bundle or True,
++        ) as client:
+             for round_idx in range(max_rounds):
+                 payload = {
+                     "model": self.model_name,
+@@ -262,4 +265,3 @@ def get_llm_service() -> LLMService:
+     if _llm_service is None:
+         _llm_service = LLMService()
+     return _llm_service
+-
+diff --git a/source-code/retrieval/video-backend/src/services/s3_service.py b/source-code/retrieval/video-backend/src/services/s3_service.py
+index 9d4fb76..369afec 100644
+--- a/source-code/retrieval/video-backend/src/services/s3_service.py
++++ b/source-code/retrieval/video-backend/src/services/s3_service.py
+@@ -65,7 +65,8 @@ class S3Service:
+             aws_access_key_id=self.settings.s3_access_key,
+             aws_secret_access_key=self.settings.s3_secret_key,
+             region_name=self.settings.s3_region,
+-            use_ssl=self.settings.s3_use_ssl
++            use_ssl=self.settings.s3_use_ssl,
++            verify=self.settings.tls_ca_bundle or True,
+         )
+         logger.info("S3 client initialized")
+     
+@@ -436,4 +437,3 @@ def get_s3_service() -> S3Service:
+     if _s3_service is None:
+         _s3_service = S3Service()
+     return _s3_service
+-
+diff --git a/source-code/retrieval/video-backend/src/services/vastdb_service.py b/source-code/retrieval/video-backend/src/services/vastdb_service.py
+index 4776808..b6d5dd8 100644
+--- a/source-code/retrieval/video-backend/src/services/vastdb_service.py
++++ b/source-code/retrieval/video-backend/src/services/vastdb_service.py
+@@ -8,7 +8,6 @@ import pyarrow as pa
+ import pandas as pd
+ import time
+ import os
+-import urllib.request
+ from datetime import datetime, timedelta
+ from typing import List, Optional
+ from src.config import get_settings
+@@ -80,7 +79,7 @@ class VastDBService:
+                 endpoint=self.settings.vdb_endpoint,
+                 access=self.settings.vdb_access_key,
+                 secret=self.settings.vdb_secret_key,
+-                ssl_verify=False
++                ssl_verify=self.settings.tls_ca_bundle or True,
+             )
+             logger.info("VastDB connection established")
+         except Exception as e:
+@@ -96,28 +95,12 @@ class VastDBService:
+         try:
+             logger.info(f"Setting up ADBC connection to VastDB at {self.settings.vdb_endpoint}")
+             
+-            # Check for driver in embedded location (from Docker image), then fallback to /tmp
+-            driver_paths = [
+-                "/opt/adbc-driver/libadbc_driver_vastdb.so",  # Embedded in Docker image
+-                "/tmp/libadbc_driver_vastdb.so"  # Fallback location
+-            ]
+-            
+-            driver_path = None
+-            for path in driver_paths:
+-                if os.path.exists(path):
+-                    driver_path = path
+-                    logger.info(f"Found VastDB ADBC driver at {driver_path}")
+-                    break
+-            
+-            # If not found, try to download from artifactory (fallback)
+-            if not driver_path:
+-                driver_path = "/tmp/libadbc_driver_vastdb.so"
+-                driver_url = "https://artifactory.vastdata.com/files/vastdb-native-client/1955131/libadbc_driver_vastdb.so"
+-                logger.warning(f"Driver not found in image, downloading from {driver_url}")
+-                urllib.request.urlretrieve(driver_url, driver_path)
+-                # Make executable
+-                os.chmod(driver_path, 0o755)
+-                logger.info(f"VastDB ADBC driver downloaded to {driver_path}")
++            driver_path = "/opt/adbc-driver/libadbc_driver_vastdb.so"
++            if not os.path.isfile(driver_path):
++                raise RuntimeError(
++                    f"Packaged VastDB ADBC driver is missing: {driver_path}"
++                )
++            logger.info(f"Found packaged VastDB ADBC driver at {driver_path}")
+             
+             # Store connection parameters for ADBC
+             self._adbc_connection = {
+@@ -993,4 +976,3 @@ def get_vastdb_service() -> VastDBService:
+     if _vastdb_service is None:
+         _vastdb_service = VastDBService()
+     return _vastdb_service
+-
+diff --git a/source-code/retrieval/video-frontend/Dockerfile b/source-code/retrieval/video-frontend/Dockerfile
+index 368e33d..a04f11e 100644
+--- a/source-code/retrieval/video-frontend/Dockerfile
++++ b/source-code/retrieval/video-frontend/Dockerfile
+@@ -1,13 +1,15 @@
+-# Multi-stage build for Angular app
+-FROM node:18-alpine AS build
++ARG NODE_IMAGE=node:22.23.2-alpine3.24@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32
++ARG NGINX_IMAGE=nginxinc/nginx-unprivileged:1.30.4-alpine3.24@sha256:93722936b82ec8a1178d48448e619226680d2de3706a1640800e186cd5fa7fd3
++
++FROM ${NODE_IMAGE} AS build
+ 
+ WORKDIR /app
+ 
+ # Copy package files
+-COPY package*.json ./
++COPY package.json package-lock.json ./
+ 
+ # Install dependencies
+-RUN npm install
++RUN npm ci --ignore-scripts
+ 
+ # Copy source code
+ COPY . .
+@@ -16,7 +18,7 @@ COPY . .
+ RUN npm run build
+ 
+ # Production stage
+-FROM nginx:alpine
++FROM ${NGINX_IMAGE}
+ 
+ # Copy built app to nginx
+ COPY --from=build /app/dist/video-gui/browser /usr/share/nginx/html
+@@ -24,8 +26,6 @@ COPY --from=build /app/dist/video-gui/browser /usr/share/nginx/html
+ # Copy nginx configuration
+ COPY nginx.conf /etc/nginx/conf.d/default.conf
+ 
+-# Expose port
+-EXPOSE 80
++EXPOSE 8080
+ 
+ CMD ["nginx", "-g", "daemon off;"]
+-
+diff --git a/source-code/retrieval/video-frontend/nginx.conf b/source-code/retrieval/video-frontend/nginx.conf
+index 6b7c91f..0d5ebc3 100644
+--- a/source-code/retrieval/video-frontend/nginx.conf
++++ b/source-code/retrieval/video-frontend/nginx.conf
+@@ -1,5 +1,5 @@
+ server {
+-    listen 80;
++    listen 8080;
+     server_name _;
+     root /usr/share/nginx/html;
+     index index.html;
+@@ -21,7 +21,7 @@ server {
+ 
+     # Proxy API requests to backend (when running in same ingress)
+     location /api/ {
+-        proxy_pass http://video-backend-service:8000;
++        proxy_pass http://vast-vss-app-backend:8000;
+         proxy_http_version 1.1;
+         proxy_set_header Upgrade $http_upgrade;
+         proxy_set_header Connection 'upgrade';
+@@ -32,4 +32,3 @@ server {
+         proxy_set_header X-Forwarded-Proto $scheme;
+     }
+ }
+-

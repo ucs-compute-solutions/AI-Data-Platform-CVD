@@ -1,0 +1,5 @@
+role,address
+vast-storage-a,192.0.2.11
+vast-storage-b,192.0.2.12
+ai-gpu-a,192.0.2.21
+ai-gpu-b,192.0.2.22

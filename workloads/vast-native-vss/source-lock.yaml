@@ -1,0 +1,39 @@
+schemaVersion: 1
+source:
+  repository: https://github.com/vast-data/vss-blueprint
+  commit: 8b34c2c919edcec6b7bd51cf9ff09722d3dda879
+applicationChart:
+  path: charts/vast-vss-app
+  version: 0.1.0
+reviewedPatches:
+  openshiftHardening:
+    sha256: 3c59518cf28b28cb832fc93fc7d75c4a7adf072328b36b0fe27757519d0cfe9f
+  optionalSourceServices:
+    sha256: 0961c87f9f70de3b3455f58ce7579137fba84c1e88184427660d0fb27fdb3f4a
+  lightningThinkingControl:
+    sha256: cbd40fe863f4d1c3c9abd9c6939e3c66ec49fad01ff6e7f42eff936d766395d0
+models:
+  reasoning:
+    id: nvidia/cosmos-reason2-8b
+    nimVersion: 1.7.0
+    gpuRequest: 1
+  embedding:
+    id: nvidia/llama-nemotron-embed-1b-v2
+    nimVersion: 1.13.0
+    dimensions: 2048
+    gpuRequest: 1
+  synthesis:
+    id: nvidia/nemotron-3.5-lightning-30b-a3b
+    nimVersion: 2.0.9-variant
+    profile: nvfp4-tp1-pp1
+    gpuRequest: 1
+dataEngine:
+  functions:
+    - video-segmenter
+    - video-reasoner
+    - video-embedder
+    - video-vastdb-writer
+  triggers:
+    - video-chunk-land-trigger
+    - video-segment-land-trigger
+  pipeline: video-realtime-processing-pipeline

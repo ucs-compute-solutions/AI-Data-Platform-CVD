@@ -1,0 +1,43 @@
+{{- if .Values.route.enabled }}
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "vast-vss-app.fullname" . }}-backend
+  labels:
+    {{- include "vast-vss-app.labels" . | nindent 4 }}
+  annotations:
+    haproxy.router.openshift.io/timeout: {{ .Values.route.timeout | quote }}
+spec:
+  host: {{ required "route.host is required" .Values.route.host }}
+  path: /api
+  to:
+    kind: Service
+    name: {{ include "vast-vss-app.fullname" . }}-backend
+  port:
+    targetPort: http
+  {{- if .Values.route.tls.enabled }}
+  tls:
+    termination: {{ .Values.route.tls.termination }}
+    insecureEdgeTerminationPolicy: {{ .Values.route.tls.insecureEdgeTerminationPolicy }}
+  {{- end }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "vast-vss-app.fullname" . }}-frontend
+  labels:
+    {{- include "vast-vss-app.labels" . | nindent 4 }}
+spec:
+  host: {{ required "route.host is required" .Values.route.host }}
+  path: /
+  to:
+    kind: Service
+    name: {{ include "vast-vss-app.fullname" . }}-frontend
+  port:
+    targetPort: http
+  {{- if .Values.route.tls.enabled }}
+  tls:
+    termination: {{ .Values.route.tls.termination }}
+    insecureEdgeTerminationPolicy: {{ .Values.route.tls.insecureEdgeTerminationPolicy }}
+  {{- end }}
+{{- end }}

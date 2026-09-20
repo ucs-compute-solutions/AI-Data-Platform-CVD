@@ -1,0 +1,51 @@
+name: Validate repository
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Check shell syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          while IFS= read -r script; do
+            bash -n "$script"
+          done < <(find . -type f -name '*.sh' -not -path './.git/*' | sort)
+
+      - name: Check YAML syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t yaml_files < <(find . -type f \( -name '*.yaml' -o -name '*.yml' \) -not -path './.git/*' -not -path '*/templates/*' | sort)
+          ruby -e 'require "yaml"; ARGV.each { |path| YAML.parse_file(path) or abort("empty YAML: #{path}") }' "${yaml_files[@]}"
+
+      - name: Validate repository content
+        run: python3 scripts/validate-repository.py
+
+      - name: Install Helm
+        uses: Azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
+        with:
+          version: v3.18.4
+
+      - name: Lint Helm chart
+        run: helm lint charts/vast-vss-app

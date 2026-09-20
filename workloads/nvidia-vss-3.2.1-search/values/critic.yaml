@@ -1,0 +1,56 @@
+global:
+  enableCritic: true
+
+agent:
+  vss-agent:
+    vlmName: nvidia/cosmos3-nano-reasoner
+    vlmBaseUrl: http://nvidia-cosmos3-reasoner:8000
+
+vss-agent-ui:
+  # The base OpenShift patch hides the Critic control when the feature is off.
+  # Restore the per-query switch only in critic mode.
+  envOverrides:
+    - name: NEXT_PUBLIC_ENABLE_DASHBOARD_TAB
+      value: "false"
+    - name: NEXT_PUBLIC_ENABLE_SEARCH_TAB
+      value: "true"
+    - name: NEXT_PUBLIC_ENABLE_ALERTS_TAB
+      value: "false"
+    - name: NEXT_PUBLIC_SIDEBAR_CHAT_CHAT_API_CUSTOM_AGENT_PARAMS_JSON
+      value: '{"params":[{"name":"search_source_type","label":"Search media source type","type":"select","default-value":"video_file","options":["video_file","rtsp"],"changeable":true,"tooltip-info":"Media Source type for Search Agent Query"},{"name":"use_critic","label":"Enable Critic","type":"boolean","default-value":true,"changeable":true,"tooltip-info":"Verify results with Critic Agent"}]}'
+
+nims:
+  enabled: true
+  gpuType: RTXPRO6000BW
+  global:
+    ngcApiKey: ""
+    pullSecretName: "__NGC_PULL_SECRET__"
+    authSecretName: "__NGC_API_SECRET__"
+    storageClass: "__STORAGE_CLASS__"
+  nemotron:
+    enabled: false
+  cosmos3:
+    enabled: true
+    image:
+      repository: nvcr.io/nim/nvidia/cosmos3-reasoner
+      tag: "1.7"
+      pullPolicy: IfNotPresent
+    replicas: 1
+    nimModelSize: nano
+    nimModelName: ""
+    nimModelProfile: e55fdb44f41441032f546360d0dcf61caa8b39fa2852d31124c03953d01e1cb3
+    resources:
+      limits:
+        nvidia.com/gpu: "1"
+      requests:
+        nvidia.com/gpu: "1"
+    storage:
+      pvc:
+        storageClass: "__STORAGE_CLASS__"
+        size: 200Gi
+      sharedMemorySizeLimit: 32Gi
+    service:
+      type: ClusterIP
+      port: 8000
+    nodeSelector:
+      "__GPU_NODE_SELECTOR_KEY__": "__GPU_NODE_SELECTOR_VALUE__"

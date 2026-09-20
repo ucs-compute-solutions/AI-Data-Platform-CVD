@@ -1,0 +1,151 @@
+diff --git a/deploy/helm/developer-profiles/dev-profile-search/values.yaml b/deploy/helm/developer-profiles/dev-profile-search/values.yaml
+--- a/deploy/helm/developer-profiles/dev-profile-search/values.yaml
++++ b/deploy/helm/developer-profiles/dev-profile-search/values.yaml
+@@ -667,7 +667,7 @@ vss-agent-ui:
+     - name: NEXT_PUBLIC_ENABLE_CHAT_TAB
+       value: "false"
+     - name: NEXT_PUBLIC_ENABLE_DASHBOARD_TAB
+-      value: "true"
++      value: "false"
+     - name: NEXT_PUBLIC_ENABLE_INTERMEDIATE_STEPS
+       value: "true"
+     - name: NEXT_PUBLIC_ENABLE_MAP_TAB
+@@ -681,7 +681,7 @@ vss-agent-ui:
+     - name: NEXT_PUBLIC_RIGHT_MENU_OPEN
+       value: "false"
+     - name: NEXT_PUBLIC_SIDEBAR_CHAT_CHAT_API_CUSTOM_AGENT_PARAMS_JSON
+-      value: '{"params":[{"name":"search_source_type","label":"Search media source type","type":"select","default-value":"video_file","options":["video_file","rtsp"],"changeable":true,"tooltip-info":"Media Source type for Search Agent Query"},{"name":"use_critic","label":"Enable Critic","type":"boolean","default-value":true,"changeable":true,"tooltip-info":"Verify results with Critic Agent"}]}'
++      value: '{"params":[{"name":"search_source_type","label":"Search media source type","type":"select","default-value":"video_file","options":["video_file","rtsp"],"changeable":true,"tooltip-info":"Media Source type for Search Agent Query"}]}'
+     - name: NEXT_PUBLIC_SIDEBAR_CHAT_CHAT_HISTORY_DEFAULT_ON
+       value: "true"
+     - name: NEXT_PUBLIC_SIDEBAR_CHAT_CHAT_INPUT_MIC_ENABLED
+diff --git a/deploy/helm/developer-profiles/dev-profile-search/templates/vss-rtvi-cv-configmap.yaml b/deploy/helm/developer-profiles/dev-profile-search/templates/vss-rtvi-cv-configmap.yaml
+--- a/deploy/helm/developer-profiles/dev-profile-search/templates/vss-rtvi-cv-configmap.yaml
++++ b/deploy/helm/developer-profiles/dev-profile-search/templates/vss-rtvi-cv-configmap.yaml
+@@ -26,6 +26,11 @@ metadata:
+ data:
+   ds-start.sh: |
+     #!/bin/bash
++    # On OpenShift/RHCOS, GPU Operator injects the host driver libraries into
++    # /usr/lib64. Prepend that path so this Ubuntu-based DeepStream image uses
++    # the injected host libcuda and libnvidia-ml instead of image placeholders.
++    # This backports NVIDIA correction d1944dfa to the v3.2.1 source lock.
++    export LD_LIBRARY_PATH=/usr/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+     if [[ $MODEL_TYPE == "cnn" ]]; then
+           echo "##### $MODEL_TYPE models will be used. #####"
+           echo "##### Copying onnx-files to DS docker volume for preserving PVCs... #####"
+diff --git a/deploy/helm/services/rtvi/charts/rtvi-cv/templates/job-download-models.yaml b/deploy/helm/services/rtvi/charts/rtvi-cv/templates/job-download-models.yaml
+--- a/deploy/helm/services/rtvi/charts/rtvi-cv/templates/job-download-models.yaml
++++ b/deploy/helm/services/rtvi/charts/rtvi-cv/templates/job-download-models.yaml
+@@ -24,10 +24,13 @@ metadata:
+ spec:
+   backoffLimit: 3
+-  ttlSecondsAfterFinished: 300
++  # Keep the completed Job long enough for Helm and the CVD wrapper to
++  # validate its labels, PVC contract, and log after the stack is Ready.
++  ttlSecondsAfterFinished: 3600
+   template:
+     spec:
+       restartPolicy: OnFailure
+-      {{- with .Values.nodeSelector }}
++      {{- $downloadNodeSelector := .Values.modelDownloadNodeSelector | default .Values.nodeSelector }}
++      {{- with $downloadNodeSelector }}
+       nodeSelector:
+         {{- toYaml . | nindent 8 }}
+       {{- end }}
+@@ -59,17 +62,41 @@ spec:
+               echo "[INFO] Installing NGC CLI..."
+               apt-get update -qq && apt-get install -y -qq wget unzip > /dev/null
+               cd /tmp
+-              wget -q https://ngc.nvidia.com/downloads/ngccli_linux.zip -O ngccli_linux.zip
++              NGC_CLI_VERSION="4.36.6"
++              NGC_CLI_SHA256="2972dbe54e80cedae18e82923a9a67a60aef23d041c5790336f8f4b51752bab6"
++              wget -q "https://api.ngc.nvidia.com/v2/resources/nvidia/ngc-apps/ngc_cli/versions/${NGC_CLI_VERSION}/files/ngccli_linux.zip" -O ngccli_linux.zip
++              echo "${NGC_CLI_SHA256}  ngccli_linux.zip" | sha256sum -c -
+               unzip -q ngccli_linux.zip && chmod +x ngc-cli/ngc
+               export PATH="/tmp/ngc-cli:$PATH"
++              export NGC_CLI_ORG={{ $.Values.ngcOrg | default "nvidia" | quote }}
+               ngc --version
+               echo "[INFO] Downloading models from NGC..."
+               DEST="/data/models"
+               {{- range .Values.ngcModelsToDownload }}
++              MODEL_REF={{ .model | quote }}
++              SOURCE_PATH={{ .sourcePath | quote }}
++              MODEL_DIR="$(dirname "${SOURCE_PATH}")"
++              DEST_PATH="${DEST}/{{ .destPath }}"
+               mkdir -p "${DEST}/$(dirname {{ .destPath | quote }})"
+-              ngc registry model download-version {{ .model | quote }} --org {{ $.Values.ngcOrg | default "nvidia" | quote }}
+-              mv {{ .sourcePath | quote }} "${DEST}/{{ .destPath }}"
+-              rm -rf $(dirname {{ .sourcePath | quote }})
++              if [[ -e "${DEST_PATH}" ]]; then
++                echo "[INFO] Model artifact already present: ${DEST_PATH}"
++                continue
++              fi
++              if [[ ! -e "${SOURCE_PATH}" ]]; then
++                rm -rf -- "${MODEL_DIR}"
++                ngc registry model download-version "${MODEL_REF}"
++              fi
++              [[ -e "${SOURCE_PATH}" ]] || {
++                echo "[ERROR] Downloaded model artifact is missing: ${SOURCE_PATH}" >&2
++                exit 1
++              }
++              mv "${SOURCE_PATH}" "${DEST_PATH}"
+               {{- end }}
++              {{- range .Values.ngcModelsToDownload }}
++              [[ -e "${DEST}/{{ .destPath }}" ]] || {
++                echo "[ERROR] Required model artifact is missing: ${DEST}/{{ .destPath }}" >&2
++                exit 1
++              }
++              {{- end }}
+               {{- $vals := .Values | toYaml | fromYaml }}
+               {{- $veModel := dig "models" "visionEncoder" "model" "siglip_v2" $vals }}
+diff --git a/deploy/helm/services/infra/charts/elasticsearch/templates/statefulset.yaml b/deploy/helm/services/infra/charts/elasticsearch/templates/statefulset.yaml
+--- a/deploy/helm/services/infra/charts/elasticsearch/templates/statefulset.yaml
++++ b/deploy/helm/services/infra/charts/elasticsearch/templates/statefulset.yaml
+@@ -12,7 +12,7 @@ metadata:
+   replicas: {{ .Values.replicas }}
+   serviceName: {{ include "elasticsearch.fullname" . }}-headless
+   persistentVolumeClaimRetentionPolicy:
+-    whenDeleted: Delete
++    whenDeleted: Retain
+     whenScaled: Retain
+   selector:
+     matchLabels:
+diff --git a/deploy/helm/services/infra/charts/kafka/templates/statefulset.yaml b/deploy/helm/services/infra/charts/kafka/templates/statefulset.yaml
+--- a/deploy/helm/services/infra/charts/kafka/templates/statefulset.yaml
++++ b/deploy/helm/services/infra/charts/kafka/templates/statefulset.yaml
+@@ -24,7 +24,7 @@ metadata:
+   replicas: {{ .Values.replicas }}
+   serviceName: {{ include "kafka.fullname" . }}-kafka-headless
+   persistentVolumeClaimRetentionPolicy:
+-    whenDeleted: Delete
++    whenDeleted: Retain
+     whenScaled: Retain
+   selector:
+     matchLabels:
+diff --git a/deploy/helm/services/infra/charts/redis/templates/statefulset.yaml b/deploy/helm/services/infra/charts/redis/templates/statefulset.yaml
+--- a/deploy/helm/services/infra/charts/redis/templates/statefulset.yaml
++++ b/deploy/helm/services/infra/charts/redis/templates/statefulset.yaml
+@@ -24,7 +24,7 @@ metadata:
+   serviceName: {{ include "redis.fullname" . }}-headless
+   replicas: {{ .Values.replicas | default 1 }}
+   persistentVolumeClaimRetentionPolicy:
+-    whenDeleted: Delete
++    whenDeleted: Retain
+     whenScaled: Retain
+   selector:
+     matchLabels:
+diff --git a/deploy/helm/services/nims/charts/cosmos3-reasoner/templates/nim-service.yaml b/deploy/helm/services/nims/charts/cosmos3-reasoner/templates/nim-service.yaml
+--- a/deploy/helm/services/nims/charts/cosmos3-reasoner/templates/nim-service.yaml
++++ b/deploy/helm/services/nims/charts/cosmos3-reasoner/templates/nim-service.yaml
+@@ -23,6 +23,10 @@ spec:
+   tolerations:
+     {{- toYaml . | nindent 4 }}
+   {{- end }}
++  {{- with .Values.nodeSelector }}
++  nodeSelector:
++    {{- toYaml . | nindent 4 }}
++  {{- end }}
+   authSecret: {{ .Values.global.authSecretName | quote }}
+   labels:
+     {{- include "cosmos3.selectorLabels" . | nindent 4 }}

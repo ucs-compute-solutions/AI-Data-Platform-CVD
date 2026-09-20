@@ -1,0 +1,10 @@
+# Values consumed by the VAST-supplied permissions chart for the selected
+# DataEngine release. Review the chart's rendered SCC and ClusterRoleBinding
+# objects before applying them. Remove any namespace not required by the
+# selected release.
+groups:
+  - system:serviceaccounts:knative-eventing
+  - system:serviceaccounts:knative-serving
+  - system:serviceaccounts:vast-dataengine
+  - system:serviceaccounts:zot
+  - system:serviceaccounts:zarf

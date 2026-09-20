@@ -1,0 +1,6 @@
+# Initial-only overlay. Keep the RT-CV StatefulSet at zero replicas while the
+# model-download Job populates its RWO claim. Steady mode disables the Job and
+# restores the chart's one RT-CV replica.
+rtvi:
+  vss-rtvi-cv:
+    replicas: 0

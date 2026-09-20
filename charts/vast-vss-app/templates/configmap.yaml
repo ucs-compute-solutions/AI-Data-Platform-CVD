@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "vast-vss-app.fullname" . }}-frontend-config
+  labels:
+    {{- include "vast-vss-app.labels" . | nindent 4 }}
+data:
+  search-suggestions.json: |
+    {
+      "placeholder_examples": {{ .Values.frontendConfig.placeholderExamples | toJson }}
+    }
+{{/* Preserve the release-2 rendered checksum; this blank output is intentional. */}}

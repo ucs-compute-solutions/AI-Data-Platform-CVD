@@ -1,0 +1,112 @@
+# Example inputs only. Copy this file to values.site.yaml and review every value.
+# The renderer creates candidate configurations; it never connects to a switch.
+
+site_name: example-aidp
+platform: N9K-C9332D-GX2B
+shutdown_by_default: true
+
+vlans:
+  common:
+    - {id: 10, name: discovery-vlan, purpose: "VAST discovery and bootstrap"}
+    - {id: 69, name: storage-vlan69, purpose: "VAST internal storage"}
+    - {id: 1080, name: oob-mgmt, purpose: "VAST management"}
+    - {id: 1081, name: inband-network, purpose: "VAST in-band client and service traffic"}
+    - {id: 1082, name: inband-network-2, purpose: "OpenShift machine/API/ingress and VAST service traffic"}
+    - {id: 3056, name: VAST-Client_VLAN_3056, purpose: "VAST client and RoCE data"}
+  ai_only:
+    - {id: 3057, name: provisioning-ocp-3057, purpose: "OpenShift provisioning"}
+
+qos:
+  mtu: 9216
+  pfc_cos: 3
+
+storage_pair:
+  vpc_domain_id: 16
+  switches:
+    - role: a
+      hostname: cvd-vast-storage-a
+      keepalive_source: 192.0.2.11
+      keepalive_destination: 192.0.2.12
+    - role: b
+      hostname: cvd-vast-storage-b
+      keepalive_source: 192.0.2.12
+      keepalive_destination: 192.0.2.11
+  port_roles:
+    external_northbound:
+      first: Ethernet1/1/1
+      last: Ethernet1/8/2
+      allowed_vlans: "10,69,1080-1082,3056"
+    storage_internal:
+      first: Ethernet1/9/1
+      last: Ethernet1/16/2
+      allowed_vlans: "10,69"
+  peer_link:
+    port_channel: 16
+    members: [Ethernet1/17, Ethernet1/18, Ethernet1/19, Ethernet1/20]
+    allowed_vlans: "10,69,1080-1082,3056"
+  inter_fabric:
+    port_channel: 100
+    members: [Ethernet1/24, Ethernet1/25]
+    allowed_vlans: "1080-1082,3056"
+
+ai_gpu_ocp_pair:
+  vpc_domain_id: 20
+  switches:
+    - role: a
+      hostname: cvd-ai-gpu-ocp-a
+      keepalive_source: 192.0.2.21
+      keepalive_destination: 192.0.2.22
+    - role: b
+      hostname: cvd-ai-gpu-ocp-b
+      keepalive_source: 192.0.2.22
+      keepalive_destination: 192.0.2.21
+  peer_link:
+    port_channel: 20
+    members: [Ethernet1/17, Ethernet1/18]
+    allowed_vlans: "1080-1082,3056-3057"
+  inter_fabric:
+    port_channel: 100
+    members: [Ethernet1/24, Ethernet1/25]
+    allowed_vlans: "1080-1082,3056"
+  northbound:
+    port_channel: 200
+    vpc_id: 200
+    members:
+      a: [Ethernet1/31, Ethernet1/32]
+      b: [Ethernet1/31, Ethernet1/32]
+    allowed_vlans: "1080-1082,3056-3057"
+  hosts:
+    - {name: ocp-control-01, kind: "Cisco C225 M8 OpenShift node", attachment_role: ocp-node, port_channel: 111, port_a: Ethernet1/2, port_b: Ethernet1/2, allowed_vlans: "1080-1082,3056-3057"}
+    - {name: ocp-control-02, kind: "Cisco C225 M8 OpenShift node", attachment_role: ocp-node, port_channel: 112, port_a: Ethernet1/3, port_b: Ethernet1/3, allowed_vlans: "1080-1082,3056-3057"}
+    - {name: ocp-control-03, kind: "Cisco C225 M8 OpenShift node", attachment_role: ocp-node, port_channel: 113, port_a: Ethernet1/4, port_b: Ethernet1/4, allowed_vlans: "1080-1082,3056-3057"}
+
+    # Validated C845A high-speed path: one 200-Gb CX-7 member per switch,
+    # combined as host bond1 and Po101/vPC101. VLAN 3056 is the VAST/RoCE path.
+    - name: c845a-cx7
+      kind: "Cisco C845A CX-7 data attachment"
+      attachment_role: c845a-cx7
+      port_channel: 101
+      port_a: Ethernet1/1
+      port_b: Ethernet1/1
+      native_vlan: 3056
+      allowed_vlans: "3056"
+      mtu: 9216
+      pfc: true
+      qos_policy: ROCE_POLICY
+      design_status: validated
+
+    # Repeatable CVD target for the separate Intel X710 OpenShift host path.
+    # Confirm Po102/vPC102 and Eth1/33 against the approved site cabling map.
+    # VLAN 1082 is the active br-ex machine network; VLAN 3057 is needed only
+    # when the selected OpenShift installation workflow uses provisioning.
+    - name: c845a-x710-ocp
+      kind: "Cisco C845A X710 OpenShift attachment"
+      attachment_role: c845a-x710-ocp
+      port_channel: 102
+      port_a: Ethernet1/33
+      port_b: Ethernet1/33
+      native_vlan: 1082
+      allowed_vlans: "1082,3057"
+      mtu: 1500
+      pfc: false
+      design_status: reference-design-confirm-site-map

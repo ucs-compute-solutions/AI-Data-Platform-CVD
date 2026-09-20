@@ -1,0 +1,6 @@
+# Apply after the initial RT-CV model downloader succeeds. Keep this overlay on
+# every later upgrade so the downloader is not recreated while the running
+# RT-CV pod uses the retained RWO model claim.
+rtvi:
+  vss-rtvi-cv:
+    downloadModelsFromNgc: false

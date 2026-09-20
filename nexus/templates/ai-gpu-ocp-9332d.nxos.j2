@@ -1,0 +1,140 @@
+! CANDIDATE CONFIGURATION - REVIEW THROUGH CHANGE CONTROL BEFORE USE
+! {{ data.site_name }} | {{ data.platform }} | AI/GPU/OpenShift fabric | switch {{ switch.role | upper }}
+! All data-plane interfaces are intentionally shutdown.
+!
+hostname {{ switch.hostname }}
+!
+feature lacp
+feature lldp
+feature vpc
+!
+{% for vlan in data.vlans.common + data.vlans.ai_only %}
+vlan {{ vlan.id }}
+  name {{ vlan.name }}
+{% endfor %}
+!
+class-map type network-qos match-any ROCE_NETWORK_CLASS
+  match qos-group {{ data.qos.pfc_cos }}
+class-map type qos match-all ROCE_CLASS
+  match cos {{ data.qos.pfc_cos }}
+  match dscp 26
+policy-map type qos ROCE_POLICY
+  class ROCE_CLASS
+    set qos-group {{ data.qos.pfc_cos }}
+policy-map type network-qos ROCE_NETWORK_POLICY
+  class type network-qos ROCE_NETWORK_CLASS
+    mtu {{ data.qos.mtu }}
+    pause pfc-cos {{ data.qos.pfc_cos }}
+system qos
+  service-policy type network-qos ROCE_NETWORK_POLICY
+!
+vpc domain {{ pair.vpc_domain_id }}
+  peer-switch
+  peer-keepalive destination {{ switch.keepalive_destination }} source {{ switch.keepalive_source }} vrf management
+  peer-gateway
+  auto-recovery
+!
+interface port-channel{{ pair.peer_link.port_channel }}
+  description CVD_VPC_PEER_LINK
+  switchport
+  switchport mode trunk
+  switchport trunk allowed vlan {{ pair.peer_link.allowed_vlans }}
+  spanning-tree port type network
+  vpc peer-link
+  shutdown
+!
+{% for member in pair.peer_link.members %}
+interface {{ member }}
+  description CVD_VPC_PEER_MEMBER
+  switchport
+  channel-group {{ pair.peer_link.port_channel }} mode active
+  shutdown
+{% endfor %}
+!
+interface port-channel{{ pair.inter_fabric.port_channel }}
+  description CVD_AI_GPU_{{ switch.role | upper }}_TO_STORAGE_{{ switch.role | upper }}
+  switchport
+  switchport mode trunk
+  switchport trunk allowed vlan {{ pair.inter_fabric.allowed_vlans }}
+  priority-flow-control mode on
+  priority-flow-control watch-dog-interval on
+  spanning-tree port type network
+  mtu {{ data.qos.mtu }}
+  service-policy type qos input ROCE_POLICY no-stats
+  vpc {{ pair.inter_fabric.port_channel }}
+  shutdown
+!
+{% for member in pair.inter_fabric.members %}
+interface {{ member }}
+  description CVD_AI_GPU_{{ switch.role | upper }}_TO_STORAGE_{{ switch.role | upper }}_MEMBER
+  switchport
+  switchport mode trunk
+  switchport trunk allowed vlan {{ pair.inter_fabric.allowed_vlans }}
+  priority-flow-control mode on
+  mtu {{ data.qos.mtu }}
+  channel-group {{ pair.inter_fabric.port_channel }} mode active
+  shutdown
+{% endfor %}
+!
+interface port-channel{{ pair.northbound.port_channel }}
+  description CVD_ENTERPRISE_NORTHBOUND
+  switchport
+  switchport mode trunk
+  switchport trunk allowed vlan {{ pair.northbound.allowed_vlans }}
+  spanning-tree port type network
+  vpc {{ pair.northbound.vpc_id }}
+  shutdown
+!
+{% for member in pair.northbound.members[switch.role] %}
+interface {{ member }}
+  description CVD_ENTERPRISE_NORTHBOUND_MEMBER
+  switchport
+  channel-group {{ pair.northbound.port_channel }} mode active
+  shutdown
+{% endfor %}
+!
+{% for host in pair.hosts %}
+{% if host.get('design_status') %}
+! {{ host.name }} status: {{ host.design_status }}
+{% endif %}
+interface port-channel{{ host.port_channel }}
+  description CVD_{{ host.name | upper }}_{{ host.attachment_role | upper | replace('-', '_') }}
+  switchport
+  switchport mode trunk
+{% if host.get('native_vlan') %}
+  switchport trunk native vlan {{ host.native_vlan }}
+{% endif %}
+  switchport trunk allowed vlan {{ host.allowed_vlans }}
+{% if host.get('pfc', false) %}
+  priority-flow-control mode on
+  priority-flow-control watch-dog-interval on
+{% endif %}
+  spanning-tree port type edge trunk
+{% if host.get('mtu') %}
+  mtu {{ host.mtu }}
+{% endif %}
+{% if host.get('qos_policy') %}
+  service-policy type qos input {{ host.qos_policy }} no-stats
+{% endif %}
+  vpc {{ host.port_channel }}
+  shutdown
+!
+interface {{ host.port_a if switch.role == 'a' else host.port_b }}
+  description CVD_{{ host.name | upper }}_MEMBER
+  switchport
+  switchport mode trunk
+{% if host.get('native_vlan') %}
+  switchport trunk native vlan {{ host.native_vlan }}
+{% endif %}
+  switchport trunk allowed vlan {{ host.allowed_vlans }}
+{% if host.get('pfc', false) %}
+  priority-flow-control mode on
+{% endif %}
+{% if host.get('mtu') %}
+  mtu {{ host.mtu }}
+{% endif %}
+  channel-group {{ host.port_channel }} mode active
+  shutdown
+!
+{% endfor %}
+! END OF CANDIDATE CONFIGURATION

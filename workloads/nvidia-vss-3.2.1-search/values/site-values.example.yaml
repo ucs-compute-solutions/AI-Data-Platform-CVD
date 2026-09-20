@@ -1,0 +1,149 @@
+# Reviewed template rendered from release-inputs.env by scripts/render.sh.
+# Credentials belong in pre-created Kubernetes Secrets, never in this file.
+
+global:
+  externalHost: "__ROUTE_HOST__"
+  externalScheme: https
+  enableCritic: false
+  ngcApiKey: ""
+  imagePullPolicy: IfNotPresent
+  imagePullSecrets:
+    - name: "__NGC_PULL_SECRET__"
+  storageClass: "__STORAGE_CLASS__"
+  useReleaseNamePrefix: false
+  ingress:
+    enabled: false
+  rtviInternalIngress:
+    enabled: false
+
+ingress:
+  enabled: false
+
+vios:
+  enabled: true
+  vstStorage:
+    createSharedPvcs: true
+    accessMode: ReadWriteMany
+    vstData:
+      size: 10Gi
+      storageClass: "__STORAGE_CLASS__"
+    vstVideo:
+      size: 20Gi
+      storageClass: "__STORAGE_CLASS__"
+    streamerVideos:
+      size: 20Gi
+      storageClass: "__STORAGE_CLASS__"
+  vss-vios-postgres:
+    storage:
+      data:
+        size: 10Gi
+        storageClass: "__STORAGE_CLASS__"
+    nodeSelector:
+      "__CPU_NODE_SELECTOR_KEY__": "__CPU_NODE_SELECTOR_VALUE__"
+  vss-vios-sensor:
+    nodeSelector:
+      "__CPU_NODE_SELECTOR_KEY__": "__CPU_NODE_SELECTOR_VALUE__"
+  vss-vios-streamprocessing:
+    nodeSelector:
+      "__GPU_NODE_SELECTOR_KEY__": "__GPU_NODE_SELECTOR_VALUE__"
+  vss-vios-ingress:
+    externallyAccessibleIp: "__ROUTE_HOST__"
+    nodeSelector:
+      "__CPU_NODE_SELECTOR_KEY__": "__CPU_NODE_SELECTOR_VALUE__"
+  vss-vios-nvstreamer:
+    nodeSelector:
+      "__CPU_NODE_SELECTOR_KEY__": "__CPU_NODE_SELECTOR_VALUE__"
+
+infra:
+  phoenix:
+    persistence:
+      storageClass: "__STORAGE_CLASS__"
+    nodeSelector:
+      "__CPU_NODE_SELECTOR_KEY__": "__CPU_NODE_SELECTOR_VALUE__"
+  redis:
+    persistence:
+      storageClass: "__STORAGE_CLASS__"
+    nodeSelector:
+      "__CPU_NODE_SELECTOR_KEY__": "__CPU_NODE_SELECTOR_VALUE__"
+  sdrc:
+    nodeSelector:
+      "__CPU_NODE_SELECTOR_KEY__": "__CPU_NODE_SELECTOR_VALUE__"
+  elasticsearch:
+    persistence:
+      storageClass: "__STORAGE_CLASS__"
+    nodeSelector:
+      "__CPU_NODE_SELECTOR_KEY__": "__CPU_NODE_SELECTOR_VALUE__"
+  kibana:
+    nodeSelector:
+      "__CPU_NODE_SELECTOR_KEY__": "__CPU_NODE_SELECTOR_VALUE__"
+  kafka:
+    persistence:
+      storageClass: "__STORAGE_CLASS__"
+    nodeSelector:
+      "__CPU_NODE_SELECTOR_KEY__": "__CPU_NODE_SELECTOR_VALUE__"
+  logstash:
+    persistence:
+      storageClass: "__STORAGE_CLASS__"
+    nodeSelector:
+      "__CPU_NODE_SELECTOR_KEY__": "__CPU_NODE_SELECTOR_VALUE__"
+
+rtvi:
+  vss-rtvi-cv:
+    ngcApiKeySecretName: "__NGC_API_SECRET__"
+    ngcApiKeySecretKey: NGC_API_KEY
+    persistence:
+      storageClass: "__STORAGE_CLASS__"
+    nodeSelector:
+      "__GPU_NODE_SELECTOR_KEY__": "__GPU_NODE_SELECTOR_VALUE__"
+    modelDownloadNodeSelector:
+      "__CPU_NODE_SELECTOR_KEY__": "__CPU_NODE_SELECTOR_VALUE__"
+  vss-rtvi-embed:
+    ngcApiKey: ""
+    nvidiaApiKey: ""
+    hfToken: ""
+    persistence:
+      storageClass: "__STORAGE_CLASS__"
+    resources:
+      requests:
+        nvidia.com/gpu: 1
+    nodeSelector:
+      "__GPU_NODE_SELECTOR_KEY__": "__GPU_NODE_SELECTOR_VALUE__"
+
+analytics:
+  vss-video-analytics-api:
+    storage:
+      size: 5Gi
+      storageClass: "__STORAGE_CLASS__"
+    nodeSelector:
+      "__CPU_NODE_SELECTOR_KEY__": "__CPU_NODE_SELECTOR_VALUE__"
+  vss-behavior-analytics:
+    nodeSelector:
+      "__CPU_NODE_SELECTOR_KEY__": "__CPU_NODE_SELECTOR_VALUE__"
+
+agent:
+  vss-agent:
+    llmName: "__LLM_MODEL__"
+    llmBaseUrl: "__LLM_BASE_URL__"
+    evalLlmJudgeName: "__LLM_MODEL__"
+    evalLlmJudgeBaseUrl: "__LLM_BASE_URL__"
+    vstPublicBaseUseNipIo: false
+    vstPublicIngressHost: "__ROUTE_HOST__"
+    vstExternalUrl: "https://__ROUTE_HOST__"
+    vssAgentExternalUrl: "https://__ROUTE_HOST__"
+    reportsBaseUrl: "https://__ROUTE_HOST__/static/"
+    nodeSelector:
+      "__CPU_NODE_SELECTOR_KEY__": "__CPU_NODE_SELECTOR_VALUE__"
+
+vss-agent-ui:
+  # Keep browser traffic on the public Route while the UI server reaches the
+  # Agent through its in-cluster Service; this avoids Route hairpin failures.
+  chatCompletionUrl: "http://vss-agent:8000/chat/stream"
+  nodeSelector:
+    "__CPU_NODE_SELECTOR_KEY__": "__CPU_NODE_SELECTOR_VALUE__"
+
+nims:
+  enabled: false
+  nemotron:
+    enabled: false
+  cosmos3:
+    enabled: false

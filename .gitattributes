@@ -1,0 +1,28 @@
+* text=auto eol=lf
+
+*.sh text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.json text eol=lf
+*.csv text eol=lf
+*.j2 text eol=lf
+*.tpl text eol=lf
+*.patch text eol=lf
+*.patch -whitespace
+*.lock text eol=lf
+*.txt text eol=lf
+
+*.docx binary
+*.pptx binary
+*.pdf binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.zip binary
+*.tgz binary
+*.mp4 binary
+*.mov binary
+*.mkv binary

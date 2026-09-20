@@ -1,0 +1,16 @@
+repository: https://github.com/NVIDIA-AI-Blueprints/video-search-and-summarization.git
+tag: v3.2.1
+commit: 7640d917047cf7b0fd3085eefb8282754b56bc94
+profile: deploy/helm/developer-profiles/dev-profile-search
+chartVersion: 3.2.1
+nimOperatorVersion: 3.1.1
+criticImage: nvcr.io/nim/nvidia/cosmos3-reasoner:1.7
+huggingFaceModel: nvidia/Cosmos-Embed1-448p-anomaly-detection
+huggingFaceRevision: 3b1455ed97c7b1d5419c0c3129b7199ca4cd9382
+ngcCliVersion: 4.36.6
+ngcCliSha256: 2972dbe54e80cedae18e82923a9a67a60aef23d041c5790336f8f4b51752bab6
+openshiftPatchPath: patches/nvidia-vss-3.2.1-search/openshift-v321.patch
+openshiftPatchSha256: 2d3d0a0df4ca1a54ab6261aa580e3b3cc50dc04841af0f56661e586ad19115dd
+backports:
+  - commit: d1944dfa208f2d85ee98b63f258b4924e5f7d0cb
+    purpose: Prefer GPU Operator libraries under /usr/lib64 for RT-CV on OpenShift

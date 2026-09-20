@@ -1,0 +1,7 @@
+# Rendered switch configurations and site-specific values are local artifacts.
+rendered/
+values.site.yaml
+values.*.site.yaml
+validation/switches.site.csv
+.venv/
+__pycache__/

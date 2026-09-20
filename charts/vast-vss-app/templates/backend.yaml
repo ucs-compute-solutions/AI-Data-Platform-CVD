@@ -1,0 +1,123 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "vast-vss-app.fullname" . }}-backend
+  labels:
+    {{- include "vast-vss-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      {{- include "vast-vss-app.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: backend
+  template:
+    metadata:
+      labels:
+        {{- include "vast-vss-app.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: backend
+      annotations:
+        checksum/frontend-config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "vast-vss-app.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: backend
+          image: {{ include "vast-vss-app.image" .Values.images.backend | quote }}
+          imagePullPolicy: {{ .Values.images.backend.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          env:
+            - name: SECRET_PATH
+              value: /etc/vast-vss/config.yaml
+            - name: HOME
+              value: {{ .Values.backend.runtimeHome | quote }}
+            - name: XDG_DATA_HOME
+              value: {{ .Values.backend.xdgDataHome | quote }}
+            {{- if ne .Values.backend.llmEnableThinking nil }}
+            - name: LLM_ENABLE_THINKING
+              value: {{ .Values.backend.llmEnableThinking | quote }}
+            {{- end }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.backend.port }}
+          volumeMounts:
+            - name: runtime-secret
+              mountPath: /etc/vast-vss
+              readOnly: true
+            - name: frontend-config
+              mountPath: /app/frontend-config
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+          resources:
+            {{- toYaml .Values.backend.resources | nindent 12 }}
+      volumes:
+        - name: runtime-secret
+          secret:
+            secretName: {{ required "runtimeSecret.existingSecret is required" .Values.runtimeSecret.existingSecret }}
+            items:
+              - key: {{ .Values.runtimeSecret.key }}
+                path: config.yaml
+              {{- with .Values.runtimeSecret.caKey }}
+              - key: {{ . }}
+                path: vms-ca.pem
+              {{- end }}
+        - name: frontend-config
+          configMap:
+            name: {{ include "vast-vss-app.fullname" . }}-frontend-config
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.backend.hostAliases }}
+      hostAliases:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "vast-vss-app.fullname" . }}-backend
+  labels:
+    {{- include "vast-vss-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+spec:
+  selector:
+    {{- include "vast-vss-app.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: backend
+  ports:
+    - name: http
+      port: {{ .Values.backend.port }}
+      targetPort: http

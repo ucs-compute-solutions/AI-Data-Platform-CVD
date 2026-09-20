@@ -1,0 +1,167 @@
+{{- if .Values.streaming.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "vast-vss-app.fullname" . }}-streaming
+  labels:
+    {{- include "vast-vss-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: streaming
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "vast-vss-app.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: streaming
+  template:
+    metadata:
+      labels:
+        {{- include "vast-vss-app.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: streaming
+    spec:
+      serviceAccountName: {{ include "vast-vss-app.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: streaming
+          image: {{ include "vast-vss-app.image" .Values.images.streaming | quote }}
+          imagePullPolicy: {{ .Values.images.streaming.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          ports:
+            - name: http
+              containerPort: {{ .Values.streaming.port }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            - name: recordings
+              mountPath: /app/recordings
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            {{- toYaml .Values.streaming.resources | nindent 12 }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        - name: recordings
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  # The pinned VAST backend uses this internal DNS name.
+  name: video-stream-capture-service
+  labels:
+    {{- include "vast-vss-app.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "vast-vss-app.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: streaming
+  ports:
+    - name: http
+      port: {{ .Values.streaming.port }}
+      targetPort: http
+---
+{{- end }}
+{{- if .Values.batchSync.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "vast-vss-app.fullname" . }}-batch-sync
+  labels:
+    {{- include "vast-vss-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: batch-sync
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "vast-vss-app.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: batch-sync
+  template:
+    metadata:
+      labels:
+        {{- include "vast-vss-app.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: batch-sync
+    spec:
+      serviceAccountName: {{ include "vast-vss-app.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: batch-sync
+          image: {{ include "vast-vss-app.image" .Values.images.batchSync | quote }}
+          imagePullPolicy: {{ .Values.images.batchSync.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          ports:
+            - name: http
+              containerPort: {{ .Values.batchSync.port }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          readinessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /ping
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          resources:
+            {{- toYaml .Values.batchSync.resources | nindent 12 }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  # The pinned VAST backend uses this internal DNS name.
+  name: video-batch-sync-service
+  labels:
+    {{- include "vast-vss-app.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "vast-vss-app.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: batch-sync
+  ports:
+    - name: http
+      port: {{ .Values.batchSync.port }}
+      targetPort: http
+{{- end }}

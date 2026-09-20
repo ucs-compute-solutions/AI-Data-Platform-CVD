@@ -1,0 +1,6 @@
+VAST VSS application chart rendered for namespace {{ .Release.Namespace }}.
+
+Expected Route: https://{{ .Values.route.host }}/
+
+This chart does not create runtime or image-pull Secrets and does not create
+VAST Data Engine functions, triggers, pipelines, views, or topics.

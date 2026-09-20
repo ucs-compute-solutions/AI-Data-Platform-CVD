@@ -1,0 +1,105 @@
+! CANDIDATE CONFIGURATION - REVIEW THROUGH CHANGE CONTROL BEFORE USE
+! {{ data.site_name }} | {{ data.platform }} | VAST storage fabric | switch {{ switch.role | upper }}
+! All data-plane interfaces are intentionally shutdown.
+!
+hostname {{ switch.hostname }}
+!
+feature lacp
+feature lldp
+feature vpc
+!
+{% for vlan in data.vlans.common %}
+vlan {{ vlan.id }}
+  name {{ vlan.name }}
+{% endfor %}
+!
+class-map type network-qos match-any ROCE_NETWORK_CLASS
+  match qos-group {{ data.qos.pfc_cos }}
+class-map type qos match-all ROCE_CLASS
+  match cos {{ data.qos.pfc_cos }}
+  match dscp 26
+policy-map type qos ROCE_POLICY
+  class ROCE_CLASS
+    set qos-group {{ data.qos.pfc_cos }}
+policy-map type network-qos ROCE_NETWORK_POLICY
+  class type network-qos ROCE_NETWORK_CLASS
+    mtu {{ data.qos.mtu }}
+    pause pfc-cos {{ data.qos.pfc_cos }}
+system qos
+  service-policy type network-qos ROCE_NETWORK_POLICY
+!
+vpc domain {{ pair.vpc_domain_id }}
+  peer-switch
+  peer-keepalive destination {{ switch.keepalive_destination }} source {{ switch.keepalive_source }} vrf management
+  peer-gateway
+  auto-recovery
+!
+interface port-channel{{ pair.peer_link.port_channel }}
+  description CVD_VPC_PEER_LINK
+  switchport
+  switchport mode trunk
+  switchport trunk allowed vlan {{ pair.peer_link.allowed_vlans }}
+  spanning-tree port type network
+  vpc peer-link
+  shutdown
+!
+{% for member in pair.peer_link.members %}
+interface {{ member }}
+  description CVD_VPC_PEER_MEMBER
+  switchport
+  channel-group {{ pair.peer_link.port_channel }} mode active
+  shutdown
+{% endfor %}
+!
+interface port-channel{{ pair.inter_fabric.port_channel }}
+  description CVD_STORAGE_{{ switch.role | upper }}_TO_AI_GPU_{{ switch.role | upper }}
+  switchport
+  switchport mode trunk
+  switchport trunk allowed vlan {{ pair.inter_fabric.allowed_vlans }}
+  priority-flow-control mode on
+  priority-flow-control watch-dog-interval on
+  spanning-tree port type network
+  mtu {{ data.qos.mtu }}
+  service-policy type qos input ROCE_POLICY no-stats
+  vpc {{ pair.inter_fabric.port_channel }}
+  shutdown
+!
+{% for member in pair.inter_fabric.members %}
+interface {{ member }}
+  description CVD_STORAGE_{{ switch.role | upper }}_TO_AI_GPU_{{ switch.role | upper }}_MEMBER
+  switchport
+  switchport mode trunk
+  switchport trunk allowed vlan {{ pair.inter_fabric.allowed_vlans }}
+  priority-flow-control mode on
+  mtu {{ data.qos.mtu }}
+  channel-group {{ pair.inter_fabric.port_channel }} mode active
+  shutdown
+{% endfor %}
+!
+! Ethernet1/1/1-Ethernet1/8/2: external/northbound ports
+{% for interface in pair.external_interfaces %}
+interface {{ interface }}
+  description CVD_EXTERNAL_NORTHBOUND
+  switchport
+  switchport mode trunk
+  switchport trunk allowed vlan {{ pair.port_roles.external_northbound.allowed_vlans }}
+  mtu {{ data.qos.mtu }}
+  priority-flow-control mode on
+  spanning-tree port type network
+  shutdown
+{% endfor %}
+!
+! Ethernet1/9/1-Ethernet1/16/2: VAST storage/internal ports for 12 Cisco C225 M8 EBox nodes
+{% for interface in pair.internal_interfaces %}
+interface {{ interface }}
+  description CVD_VAST_STORAGE_INTERNAL
+  switchport
+  switchport mode trunk
+  switchport trunk allowed vlan {{ pair.port_roles.storage_internal.allowed_vlans }}
+  mtu {{ data.qos.mtu }}
+  priority-flow-control mode on
+  spanning-tree port type edge trunk
+  shutdown
+{% endfor %}
+!
+! END OF CANDIDATE CONFIGURATION

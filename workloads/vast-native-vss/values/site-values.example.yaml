@@ -1,0 +1,66 @@
+fullnameOverride: vast-vss-app
+
+imagePullSecrets:
+  - name: __CVD_IMAGE_PULL_SECRET__
+
+images:
+  backend:
+    repository: __CVD_BACKEND_REPOSITORY__
+    tag: pinned-by-digest
+    digest: __CVD_BACKEND_DIGEST__
+    pullPolicy: IfNotPresent
+  frontend:
+    repository: __CVD_FRONTEND_REPOSITORY__
+    tag: pinned-by-digest
+    digest: __CVD_FRONTEND_DIGEST__
+    pullPolicy: IfNotPresent
+  streaming:
+    repository: example.invalid/disabled-vss-video-streaming
+    tag: disabled-0.1.0
+  batchSync:
+    repository: example.invalid/disabled-vss-video-batch-sync
+    tag: disabled-0.1.0
+  retrievalAdapter:
+    repository: example.invalid/disabled-vss-retrieval-adapter
+    tag: disabled-0.1.0
+
+runtimeSecret:
+  existingSecret: __CVD_RUNTIME_SECRET__
+  key: config.yaml
+  caKey: vms-ca.pem
+
+route:
+  enabled: true
+  host: __CVD_ROUTE_HOST__
+  tls:
+    enabled: true
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  timeout: 600s
+
+backend:
+  llmEnableThinking: false
+  runtimeHome: /tmp/vast-vss-home
+  xdgDataHome: /tmp/vast-vss-home/.local/share
+  hostAliases: []
+
+frontend:
+  nginx:
+    maxBodySize: 100m
+    clientBodyTimeout: 600s
+    sendTimeout: 600s
+    proxyConnectTimeout: 30s
+    proxySendTimeout: 600s
+    proxyReadTimeout: 600s
+
+# Base CVD acceptance uses browser MP4 upload. Enable optional source services
+# only after the base path passes and their images and source behavior are
+# separately reviewed.
+streaming:
+  enabled: false
+batchSync:
+  enabled: false
+retrievalAdapter:
+  enabled: false
+
+nodeSelector: __CVD_NODE_SELECTOR_YAML__

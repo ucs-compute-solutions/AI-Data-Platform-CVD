@@ -1,0 +1,6 @@
+apiVersion: v2
+name: vast-vss-app
+description: OpenShift application layer for the VAST VSS Blueprint
+type: application
+version: 0.1.0
+appVersion: "8b34c2c"

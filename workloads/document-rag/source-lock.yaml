@@ -1,0 +1,8 @@
+schemaVersion: 1
+insightEngineVersion: "5.4.3"
+validateLocalNimsPath: "scripts/validate-local-nims.py"
+validateLocalNimsSha256: "b78d8a27f9da164104ed1987c7b0d17ef32a4ba469da6dfb5d51a1d85ac0dcd1"
+validateDocumentRagPath: "scripts/validate-document-rag-cvd.py"
+validateDocumentRagSha256: "a40d26646f95d1b6d80a282a2b02fc093c214a5a456537816402824fae679c98"
+probeEmbeddingPath: "scripts/probe-embedding-nim.py"
+probeEmbeddingSha256: "e5de2587c30d8767bc43fe24af15861a36283907da6cd0c28db30f525063ffbd"

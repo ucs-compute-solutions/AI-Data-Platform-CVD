@@ -1,0 +1,140 @@
+nameOverride: ""
+fullnameOverride: ""
+
+replicaCount: 1
+
+imagePullSecrets: []
+
+images:
+  backend:
+    repository: example.invalid/vss-video-backend
+    tag: 8b34c2c-cvd.1
+    digest: ""
+    pullPolicy: IfNotPresent
+  frontend:
+    repository: example.invalid/vss-video-frontend
+    tag: 8b34c2c-cvd.1
+    digest: ""
+    pullPolicy: IfNotPresent
+  streaming:
+    repository: example.invalid/vss-video-streaming
+    tag: 8b34c2c-cvd.1
+    digest: ""
+    pullPolicy: IfNotPresent
+  batchSync:
+    repository: example.invalid/vss-video-batch-sync
+    tag: 8b34c2c-cvd.1
+    digest: ""
+    pullPolicy: IfNotPresent
+  retrievalAdapter:
+    repository: example.invalid/vss-vast-retrieval-adapter
+    tag: 0.1.0
+    digest: ""
+    pullPolicy: IfNotPresent
+
+serviceAccount:
+  create: true
+  name: ""
+
+runtimeSecret:
+  existingSecret: vast-vss-runtime
+  key: config.yaml
+  caKey: ""
+
+frontendConfig:
+  placeholderExamples:
+    - delivery truck is blocking the road
+    - forklift entered a restricted warehouse area
+    - person is not wearing required safety equipment
+
+route:
+  enabled: true
+  host: vss.example.invalid
+  tls:
+    enabled: true
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  timeout: 600s
+
+backend:
+  port: 8000
+  # null preserves vendor model behavior. Set false for reasoning models that
+  # should return only final answer content to this backend.
+  llmEnableThinking: null
+  runtimeHome: /tmp/vast-vss-home
+  xdgDataHome: /tmp/vast-vss-home/.local/share
+  hostAliases: []
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+frontend:
+  port: 8080
+  nginx:
+    maxBodySize: 100m
+    clientBodyTimeout: 600s
+    sendTimeout: 600s
+    proxyConnectTimeout: 30s
+    proxySendTimeout: 600s
+    proxyReadTimeout: 600s
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 250m
+      memory: 256Mi
+
+streaming:
+  enabled: false
+  port: 5000
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+
+batchSync:
+  enabled: false
+  port: 5000
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 2Gi
+
+retrievalAdapter:
+  enabled: false
+  port: 8081
+  existingSecret: vast-vss-adapter
+  vastBackendUrl: http://vast-vss-app-backend:8000/api/v1
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  seccompProfile:
+    type: RuntimeDefault
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL

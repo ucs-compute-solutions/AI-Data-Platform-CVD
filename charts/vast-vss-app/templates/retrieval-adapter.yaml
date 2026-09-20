@@ -1,0 +1,73 @@
+{{- if .Values.retrievalAdapter.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "vast-vss-app.fullname" . }}-retrieval-adapter
+  labels:
+    {{- include "vast-vss-app.labels" . | nindent 4 }}
+    app.kubernetes.io/component: retrieval-adapter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "vast-vss-app.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: retrieval-adapter
+  template:
+    metadata:
+      labels:
+        {{- include "vast-vss-app.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: retrieval-adapter
+    spec:
+      serviceAccountName: {{ include "vast-vss-app.serviceAccountName" . }}
+      automountServiceAccountToken: false
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: retrieval-adapter
+          image: {{ include "vast-vss-app.image" .Values.images.retrievalAdapter | quote }}
+          imagePullPolicy: {{ .Values.images.retrievalAdapter.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.containerSecurityContext | nindent 12 }}
+          env:
+            - name: VAST_VIDEO_BASE_URL
+              value: {{ .Values.retrievalAdapter.vastBackendUrl | quote }}
+          envFrom:
+            - secretRef:
+                name: {{ required "retrievalAdapter.existingSecret is required when enabled" .Values.retrievalAdapter.existingSecret }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.retrievalAdapter.port }}
+          readinessProbe:
+            httpGet:
+              path: /v1/health
+              port: http
+          livenessProbe:
+            httpGet:
+              path: /v1/health
+              port: http
+          resources:
+            {{- toYaml .Values.retrievalAdapter.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "vast-vss-app.fullname" . }}-retrieval-adapter
+  labels:
+    {{- include "vast-vss-app.labels" . | nindent 4 }}
+spec:
+  selector:
+    {{- include "vast-vss-app.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: retrieval-adapter
+  ports:
+    - name: http
+      port: {{ .Values.retrievalAdapter.port }}
+      targetPort: http
+{{- end }}

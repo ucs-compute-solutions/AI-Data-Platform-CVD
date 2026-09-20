@@ -1,0 +1,153 @@
+diff --git a/source-code/video-batch-sync/Dockerfile b/source-code/video-batch-sync/Dockerfile
+index 35e1077..4dc179f 100644
+--- a/source-code/video-batch-sync/Dockerfile
++++ b/source-code/video-batch-sync/Dockerfile
+@@ -1,18 +1,21 @@
+-FROM python:3.11-slim
++ARG PYTHON_IMAGE=python:3.11.16-slim-bookworm@sha256:0bee7276f83efd4a1ee05bbbf4281d95ed28e079220a9457f25a93e3f1e3c31b
++FROM ${PYTHON_IMAGE}
+ 
+-# Set working directory
+ WORKDIR /app
+ 
+-# Copy requirements and install Python dependencies
+-COPY requirements.txt .
+-RUN pip install --no-cache-dir -r requirements.txt
++COPY requirements.lock .
++RUN python -m pip install --no-cache-dir --requirement requirements.lock \
++    && python -m pip check
+ 
+-# Copy application files from src directory
+ COPY src/ ./
+ 
+-# Set environment variables
+-ENV PYTHONUNBUFFERED=1
++# OpenShift supplies an arbitrary non-root UID. Group-zero permissions allow
++# that UID to read the application while runtime state remains below /tmp.
++RUN chgrp -R 0 /app \
++    && chmod -R g=u /app
++
++ENV PYTHONUNBUFFERED=1 \
++    HOME=/tmp
+ 
+-# Default command
+ CMD ["python", "web_service.py"]
+ 
+diff --git a/source-code/video-batch-sync/src/web_service.py b/source-code/video-batch-sync/src/web_service.py
+index edf4374..a9d7e49 100644
+--- a/source-code/video-batch-sync/src/web_service.py
++++ b/source-code/video-batch-sync/src/web_service.py
+@@ -10,6 +10,7 @@ Date: 2024
+ """
+ 
+ import time
++import os
+ import logging
+ import threading
+ from datetime import datetime
+@@ -49,6 +50,10 @@ class BatchSyncService:
+         
+     def setup_s3_client(self, access_key: str, secret_key: str, s3_endpoint: str, use_ssl: bool = False):
+         """Setup S3 client with provided credentials"""
++        # Use the system trust store by default. A site may mount a combined
++        # public/private CA bundle and point S3_CA_BUNDLE at it.
++        verify = os.environ.get('S3_CA_BUNDLE') or True
++        use_ssl = s3_endpoint.lower().startswith('https://')
+         try:
+             client = boto3.client(
+                 's3',
+@@ -56,7 +61,7 @@ class BatchSyncService:
+                 aws_secret_access_key=secret_key,
+                 endpoint_url=s3_endpoint,
+                 use_ssl=use_ssl,
+-                verify=False
++                verify=verify
+             )
+             logger.info(f"S3 client configured for endpoint: {s3_endpoint}")
+             return client
+diff --git a/source-code/video-streaming/Dockerfile b/source-code/video-streaming/Dockerfile
+index 2d2752a..e36e825 100644
+--- a/source-code/video-streaming/Dockerfile
++++ b/source-code/video-streaming/Dockerfile
+@@ -1,38 +1,28 @@
+-# Match video-backend base (python:3.10-slim) so OpenSSL/glibc match the image that already
+-# runs on strict/FIPS Kubernetes workers — avoids streaming-only native TLS/OpenCV mismatches.
+-FROM python:3.10-slim
++ARG PYTHON_IMAGE=python:3.11.16-slim-bookworm@sha256:0bee7276f83efd4a1ee05bbbf4281d95ed28e079220a9457f25a93e3f1e3c31b
++FROM ${PYTHON_IMAGE}
+ 
+-# yt-dlp YouTube extraction often needs a JS runtime (n/challenge scripts). Without Node/Deno,
+-# you see "No supported JavaScript runtime" and format extraction fails intermittently.
+ RUN apt-get update && apt-get install -y --no-install-recommends \
+-    ffmpeg \
+-    wget \
+-    curl \
+-    nodejs \
++    ca-certificates=20250419~deb12u1 \
++    ffmpeg=7:5.1.9-0+deb12u1 \
++    nodejs=18.20.4+dfsg-1~deb12u2 \
+     && rm -rf /var/lib/apt/lists/* \
++    && ffmpeg -version \
+     && node --version
+ 
+-# Set working directory
+ WORKDIR /app
+ 
+-# Copy requirements and install Python dependencies
+-COPY requirements.txt .
+-RUN pip install --no-cache-dir -r requirements.txt
++COPY requirements.lock .
++RUN python -m pip install --no-cache-dir --requirement requirements.lock \
++    && python -m pip check
+ 
+-# Install yt-dlp
+-RUN pip install --no-cache-dir yt-dlp
+-
+-# Copy application files from src directory
+ COPY src/ ./
+ 
+-# Create recordings directory
+-RUN mkdir -p recordings
+-
+-# Make scripts executable
+-RUN chmod +x *.py
++# OpenShift supplies an arbitrary non-root UID. Temporary MP4 segments are
++# written to the chart's /tmp emptyDir.
++RUN chgrp -R 0 /app \
++    && chmod -R g=u /app
+ 
+-# Set environment variables
+-ENV PYTHONUNBUFFERED=1
++ENV PYTHONUNBUFFERED=1 \
++    HOME=/tmp
+ 
+-# Default command
+ CMD ["python", "web_service.py"]
+diff --git a/source-code/video-streaming/src/web_service.py b/source-code/video-streaming/src/web_service.py
+index 7dc6a8d..8e5041b 100644
+--- a/source-code/video-streaming/src/web_service.py
++++ b/source-code/video-streaming/src/web_service.py
+@@ -212,17 +212,18 @@ class VideoCaptureService:
+     
+     def setup_s3_client(self, access_key, secret_key, s3_endpoint):
+         """Setup S3 client with provided credentials."""
++        # Use the system trust store by default. A site may mount a combined
++        # public/private CA bundle and point S3_CA_BUNDLE at it.
++        verify = os.environ.get('S3_CA_BUNDLE') or True
++        use_ssl = s3_endpoint.lower().startswith('https://')
+         try:
+-            # For HTTP endpoints, disable SSL completely
+-            use_ssl = s3_endpoint.startswith('https://')
+-            
+             self.s3_client = boto3.client(
+                 's3',
+                 aws_access_key_id=access_key,
+                 aws_secret_access_key=secret_key,
+                 endpoint_url=s3_endpoint,
+-                use_ssl=False,  # Always disable SSL for HTTP endpoints
+-                verify=False    # Disable SSL verification
++                use_ssl=use_ssl,
++                verify=verify
+             )
+             logger.info(f"S3 client configured for endpoint: {s3_endpoint}")
+             return True
