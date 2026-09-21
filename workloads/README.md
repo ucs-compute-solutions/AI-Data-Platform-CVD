@@ -22,3 +22,8 @@ Credentials, API keys, tokens, kubeconfigs, and private certificates do not
 belong in these directories. Create them through the site's approved secret
 management process and reference only the Kubernetes Secret names required by
 the applicable platform companion.
+
+The separate [`../demos/warehouse-operations/`](../demos/warehouse-operations/)
+package is an implementation starter for a larger Warehouse Operations demo.
+It is not one of the three validated workload companions above and is not yet
+deployable.

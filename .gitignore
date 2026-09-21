@@ -29,6 +29,7 @@ values.site.yaml
 values.*.site.yaml
 site-values.yaml
 switches.site.csv
+demos/warehouse-operations/profiles.yaml
 *.htpasswd
 *.kubeconfig
 kubeconfig*

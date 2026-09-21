@@ -1,0 +1,272 @@
+{
+  "schema_version": 1,
+  "lock_status": "base-verified-warehouse-unresolved",
+  "last_read_only_verification": "2026-09-21",
+  "cluster": {
+    "name": "SITE",
+    "execution_host": "openshift-admin-client",
+    "expected_identity": "REQUIRED",
+    "expected_api_server": "https://api.<cluster-domain>:6443",
+    "expected_context": "REQUIRED",
+    "expected_openshift_version": "4.20.18",
+    "expected_kubernetes_version": "1.33.9",
+    "gpu_node": "gpu-worker",
+    "gpu_capacity": 8,
+    "gpu_node_must_begin_and_end_cordoned": true
+  },
+  "safety": {
+    "default_action": "plan-only",
+    "execution_acknowledgement": "GPU_MODE_SWITCH_APPROVED_PRESERVE_ALL_DATA",
+    "never_delete": [
+      "Helm releases",
+      "namespaces",
+      "PersistentVolumeClaims or PersistentVolumes",
+      "NIM caches",
+      "S3 objects",
+      "VASTDB schemas, tables, or rows",
+      "Kafka topics",
+      "Elasticsearch indices",
+      "uploaded or replay source videos"
+    ],
+    "allowed_mutations": [
+      "set spec.replicas on the listed GPU controllers",
+      "temporarily uncordon the configured GPU node inside a bounded scheduling window",
+      "re-cordon the configured GPU node before success or failure return"
+    ]
+  },
+  "retained_data_planes": [
+    {
+      "namespace": "nvidia-vss-321-search",
+      "helm_release": "nvidia-vss-search",
+      "verified_revision": 7,
+      "chart": "dev-profile-search-3.2.1",
+      "switch_behavior": "Keep all CPU and stateful services, PVCs, Kafka, Elasticsearch, VIOS data, Routes, and uploaded videos in place. Scale only the listed GPU controllers."
+    },
+    {
+      "namespace": "vast-vss",
+      "helm_release": "vast-vss",
+      "verified_revision": 5,
+      "chart": "vast-vss-app-0.1.0",
+      "switch_behavior": "Keep the application, Data Engine functions and triggers, S3 objects, VASTDB rows, indices, and videos in place. Its shared NIM dependencies are restored by base-cvd mode."
+    },
+    {
+      "namespace": "nims",
+      "helm_release": "vss-cosmos-170",
+      "verified_revision": 1,
+      "chart": "nims-3.2.0",
+      "switch_behavior": "Keep every NIMCache, model PVC, Service, and inactive rollback controller. Scale only the four source-locked active NIMServices below."
+    }
+  ],
+  "profiles": {
+    "base-cvd": {
+      "resolved": true,
+      "description": "Example CVD baseline: NVIDIA VSS Search, VAST-native VSS Search, Document RAG compatibility, and their shared NIMs. Replace all controller and release locks with values verified at the target site.",
+      "locked_gpu_request": 8,
+      "allowed_gpu_request_max": 8,
+      "controllers": [
+        {
+          "api_version": "apps.nvidia.com/v1alpha1",
+          "kind": "NIMService",
+          "namespace": "nims",
+          "name": "embedding",
+          "replicas": 1,
+          "gpu_per_replica": 1,
+          "control_path": "spec.replicas",
+          "runtime_kind": "Deployment",
+          "runtime_name": "embedding",
+          "start_order": 10,
+          "stop_order": 30,
+          "resolved": true
+        },
+        {
+          "api_version": "apps.nvidia.com/v1alpha1",
+          "kind": "NIMService",
+          "namespace": "nims",
+          "name": "reranker",
+          "replicas": 1,
+          "gpu_per_replica": 1,
+          "control_path": "spec.replicas",
+          "runtime_kind": "Deployment",
+          "runtime_name": "reranker",
+          "start_order": 10,
+          "stop_order": 30,
+          "resolved": true
+        },
+        {
+          "api_version": "apps.nvidia.com/v1alpha1",
+          "kind": "NIMService",
+          "namespace": "nims",
+          "name": "llm-nemotron-35-lightning",
+          "replicas": 1,
+          "gpu_per_replica": 1,
+          "control_path": "spec.replicas",
+          "runtime_kind": "Deployment",
+          "runtime_name": "llm-nemotron-35-lightning",
+          "start_order": 10,
+          "stop_order": 30,
+          "resolved": true
+        },
+        {
+          "api_version": "apps.nvidia.com/v1alpha1",
+          "kind": "NIMService",
+          "namespace": "nims",
+          "name": "vss-cosmos-reason2-8b-170",
+          "replicas": 1,
+          "gpu_per_replica": 1,
+          "control_path": "spec.replicas",
+          "runtime_kind": "Deployment",
+          "runtime_name": "vss-cosmos-reason2-8b-170",
+          "start_order": 10,
+          "stop_order": 30,
+          "resolved": true
+        },
+        {
+          "api_version": "apps.nvidia.com/v1alpha1",
+          "kind": "NIMService",
+          "namespace": "nvidia-vss-321-search",
+          "name": "nvidia-cosmos3-reasoner",
+          "replicas": 1,
+          "gpu_per_replica": 1,
+          "control_path": "spec.replicas",
+          "runtime_kind": "Deployment",
+          "runtime_name": "nvidia-cosmos3-reasoner",
+          "start_order": 10,
+          "stop_order": 30,
+          "resolved": true
+        },
+        {
+          "api_version": "apps/v1",
+          "kind": "Deployment",
+          "namespace": "nvidia-vss-321-search",
+          "name": "vss-rtvi-embed",
+          "replicas": 1,
+          "gpu_per_replica": 1,
+          "control_path": "spec.replicas",
+          "runtime_kind": "Deployment",
+          "runtime_name": "vss-rtvi-embed",
+          "start_order": 20,
+          "stop_order": 10,
+          "resolved": true
+        },
+        {
+          "api_version": "apps/v1",
+          "kind": "StatefulSet",
+          "namespace": "nvidia-vss-321-search",
+          "name": "vss-rtvi-cv",
+          "replicas": 1,
+          "gpu_per_replica": 1,
+          "control_path": "spec.replicas",
+          "runtime_kind": "StatefulSet",
+          "runtime_name": "vss-rtvi-cv",
+          "start_order": 20,
+          "stop_order": 10,
+          "resolved": true,
+          "claim_retention_verified": "Retain/Retain"
+        },
+        {
+          "api_version": "apps/v1",
+          "kind": "StatefulSet",
+          "namespace": "nvidia-vss-321-search",
+          "name": "vss-vios-streamprocessing",
+          "replicas": 1,
+          "gpu_per_replica": 1,
+          "control_path": "spec.replicas",
+          "runtime_kind": "StatefulSet",
+          "runtime_name": "vss-vios-streamprocessing",
+          "start_order": 20,
+          "stop_order": 10,
+          "resolved": true,
+          "claim_retention_verified": "Retain/Retain"
+        }
+      ]
+    },
+    "warehouse": {
+      "resolved": false,
+      "description": "NVIDIA Warehouse GPU plane. The mode may consume any reviewed allocation up to the configured site capacity; it does not reserve GPUs for the base profile.",
+      "locked_gpu_request": null,
+      "provisional_gpu_request": 5,
+      "allowed_gpu_request_max": 8,
+      "controller_inventory_complete": false,
+      "retained_data_plane_registered": false,
+      "execution_blockers": [
+        "Replace the placeholder namespace and confirm every GPU controller from the final Helm render.",
+        "Record each rendered controller kind, name, replica count, GPU request, and generated runtime workload.",
+        "Set controller_inventory_complete and resolved to true only after Helm lint, static audit, and Kubernetes 1.33.9 server-side dry-run pass.",
+        "Confirm the summed Warehouse request is no more than eight GPUs.",
+        "Add the deployed Warehouse Helm release, verified revision, namespace, and retained PVC inventory to retained_data_planes."
+      ],
+      "controllers": [
+        {
+          "api_version": "apps/v1",
+          "kind": "StatefulSet",
+          "namespace": "__SET_FROM_FINAL_HELM_RENDER__",
+          "name": "warehouse-rtvi-cv",
+          "replicas": 1,
+          "gpu_per_replica": 1,
+          "control_path": "spec.replicas",
+          "runtime_kind": "StatefulSet",
+          "runtime_name": "warehouse-rtvi-cv",
+          "start_order": 20,
+          "stop_order": 10,
+          "resolved": false
+        },
+        {
+          "api_version": "apps/v1",
+          "kind": "Deployment",
+          "namespace": "__SET_FROM_FINAL_HELM_RENDER__",
+          "name": "warehouse-rtvi-vlm",
+          "replicas": 1,
+          "gpu_per_replica": 1,
+          "control_path": "spec.replicas",
+          "runtime_kind": "Deployment",
+          "runtime_name": "warehouse-rtvi-vlm",
+          "start_order": 10,
+          "stop_order": 20,
+          "resolved": false
+        },
+        {
+          "api_version": "apps/v1",
+          "kind": "Deployment",
+          "namespace": "__SET_FROM_FINAL_HELM_RENDER__",
+          "name": "warehouse-nemotron-nano",
+          "replicas": 1,
+          "gpu_per_replica": 1,
+          "control_path": "spec.replicas",
+          "runtime_kind": "Deployment",
+          "runtime_name": "warehouse-nemotron-nano",
+          "start_order": 10,
+          "stop_order": 20,
+          "resolved": false
+        },
+        {
+          "api_version": "apps/v1",
+          "kind": "StatefulSet",
+          "namespace": "__SET_FROM_FINAL_HELM_RENDER__",
+          "name": "warehouse-vios-streamprocessing",
+          "replicas": 1,
+          "gpu_per_replica": 1,
+          "control_path": "spec.replicas",
+          "runtime_kind": "StatefulSet",
+          "runtime_name": "warehouse-vios-streamprocessing",
+          "start_order": 20,
+          "stop_order": 10,
+          "resolved": false
+        },
+        {
+          "api_version": "apps/v1",
+          "kind": "Deployment",
+          "namespace": "__SET_FROM_FINAL_HELM_RENDER__",
+          "name": "warehouse-nvstreamer",
+          "replicas": 1,
+          "gpu_per_replica": 1,
+          "control_path": "spec.replicas",
+          "runtime_kind": "Deployment",
+          "runtime_name": "warehouse-nvstreamer",
+          "start_order": 20,
+          "stop_order": 10,
+          "resolved": false
+        }
+      ]
+    }
+  }
+}

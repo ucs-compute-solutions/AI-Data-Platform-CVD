@@ -1,0 +1,128 @@
+manifest_version: "1.0"
+status: metadata-verified-scenarios-unscored
+verified_date: "2026-09-21"
+
+# NVIDIA media is not stored in this repository. File sizes and SHA-256 values
+# were verified read-only on the deployment client; no media was copied.
+dataset:
+  name: nv-warehouse-4cams
+  ngc_resource: nvidia/vss-warehouse/vss-warehouse-app-data
+  version: "3.2.0"
+  archive:
+    filename: vss-warehouse-app-data.tar.gz
+    byte_size: 2323598279
+    sha256: a9e6e2f63e87d5cb376d965d1e8dd78151d482cc05a5067b694435886044f3ce
+  presentation_permission: pending-license-review
+
+nvidia_profile:
+  repository: NVIDIA-AI-Blueprints/video-search-and-summarization
+  tag: v3.2.1
+  commit: 7640d917047cf7b0fd3085eefb8282754b56bc94
+  mode: 2d
+  blueprint_profile: bp_wh
+  sample_video_dataset: nv-warehouse-4cams
+  stream_count: 4
+  configuration_locks:
+    behavior_analytics:
+      path: deploy/docker/industry-profiles/warehouse-operations/warehouse-2d-app/vss-behavior-analytics/configs/vss-behavior-analytics-config.json
+      sha256: 8424ac5a6f1ce041716bf00f057514a306f684ad93d938cbfdc7b82638b3e887
+    alert_verification:
+      path: deploy/docker/industry-profiles/warehouse-operations/vlm-as-verifier/configs/alert_type_config.json
+      sha256: d7fd8c3b744a749f589759e18c5d0037a520e8b443e49997cdf6302067b97e85
+    realtime_alerts:
+      path: deploy/docker/industry-profiles/warehouse-operations/vlm-as-verifier/realtime-config.yml
+      sha256: d4413303c99da27a5aa2781d01e46fb28c05c45e54b4b155cdf8e55f26b40aca
+    calibration:
+      path: deploy/docker/industry-profiles/warehouse-operations/warehouse-2d-app/calibration/sample-data/nv-warehouse-4cams/calibration.json
+      sha256: 37127a068d8a6775ab1a12cffa2634c477e6bc44f0833d7d918b3569fd64e1e0
+    warehouse_environment:
+      path: deploy/docker/industry-profiles/warehouse-operations/.env
+      sha256: 0c6242fb720e34a4d112ed80c26b75f1cb163c1b738a8b91835e1f1a16770857
+
+source_video_profile:
+  container: MP4 Base Media v1
+  video_codec: H.264
+  width: 1920
+  height: 1080
+  frame_rate_fps: 30
+  duration_seconds: 600
+  metadata_authority: docs/validation/NVIDIA-Warehouse-Sample-2026-08-29.txt
+
+cameras:
+  - ordinal: 0
+    source_file: videos/nv-warehouse-4cams/Camera.mp4
+    source_byte_size: 132127169
+    source_sha256: 56df2cd9c0e7d54f45145da2d265741ca019666663946d5f3cf09bee96c0218c
+    nvidia_sensor_id: Camera
+    calibration:
+      roi_ids: [roi-id-1]
+      tripwire_ids: [tripwire-id-1]
+    vast_native:
+      camera_id: WAREHOUSE-CAM-00
+      staging_prefix: warehouse-01-cam-00/
+      prepared_excerpt_file: WAREHOUSE-CAM-00-0-90s.mp4
+      prepared_excerpt_start_seconds: 0
+      prepared_excerpt_duration_seconds: 90
+      prepared_excerpt_byte_size: 20004701
+      prepared_excerpt_sha256: b9d2dfdae010950f4b483c76419a9b1f4cda5e28552b91bfabbf3a03401ce993
+    verified_positive_alerts: []
+
+  - ordinal: 1
+    source_file: videos/nv-warehouse-4cams/Camera_01.mp4
+    source_byte_size: 171947958
+    source_sha256: 258a6c4f9780780a69d0b7cad3cafd0c39581ead5f54b7b96c42de0dbeb4065e
+    nvidia_sensor_id: Camera_01
+    calibration:
+      roi_ids: [roi-id-1]
+      tripwire_ids: [tripwire-id-1]
+    vast_native:
+      camera_id: WAREHOUSE-CAM-01
+      staging_prefix: warehouse-01-cam-01/
+      prepared_excerpt_file: WAREHOUSE-CAM-01-0-90s.mp4
+      prepared_excerpt_start_seconds: 0
+      prepared_excerpt_duration_seconds: 90
+      prepared_excerpt_byte_size: 26217811
+      prepared_excerpt_sha256: 02b7360e670cadc677d48b71f9b4d09ced827bd5eac0701e5602dda3f6038063
+    verified_positive_alerts: []
+
+  - ordinal: 2
+    source_file: videos/nv-warehouse-4cams/Camera_02.mp4
+    source_byte_size: 223883428
+    source_sha256: 7d246d79dd1d768921ceee1e1ca1581f9fc0e87eb77d79cf41a225e895dcf7e2
+    nvidia_sensor_id: Camera_02
+    calibration:
+      roi_ids: [roi-id-1]
+      tripwire_ids: [tripwire-id-1]
+    vast_native:
+      camera_id: WAREHOUSE-CAM-02
+      staging_prefix: warehouse-01-cam-02/
+      prepared_excerpt_file: WAREHOUSE-CAM-02-0-90s.mp4
+      prepared_excerpt_start_seconds: 0
+      prepared_excerpt_duration_seconds: 90
+      prepared_excerpt_byte_size: 33473342
+      prepared_excerpt_sha256: 2f9e990e23d38ae5d450e97ba96c696cf91b271af52ab804c097d4a9bf05be7a
+    verified_positive_alerts: []
+
+  - ordinal: 3
+    source_file: videos/nv-warehouse-4cams/Camera_03.mp4
+    source_byte_size: 162912541
+    source_sha256: 3e5d509856702176d1437b8b71e34d0c83d7146717ab26b5cbd7afcf4637be3b
+    nvidia_sensor_id: Camera_03
+    calibration:
+      roi_ids: [roi-id-1]
+      tripwire_ids: [tripwire-id-1]
+    vast_native:
+      camera_id: WAREHOUSE-CAM-03
+      staging_prefix: warehouse-01-cam-03/
+      prepared_excerpt_file: WAREHOUSE-CAM-03-0-90s.mp4
+      prepared_excerpt_start_seconds: 0
+      prepared_excerpt_duration_seconds: 90
+      prepared_excerpt_byte_size: 24251934
+      prepared_excerpt_sha256: 17a59c4e6b0953c807a9499a6f4642f57d465e507759d37d19aecf23d1c7523e
+    verified_positive_alerts: []
+
+scenario_scoring:
+  status: pending
+  verified_alert_timestamps: []
+  selected_demo_scenario: null
+  procedure: ALERT-SCENARIO-MATRIX.md

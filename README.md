@@ -27,6 +27,7 @@ flowchart LR
 | Document RAG | [`workloads/document-rag/README.md`](workloads/document-rag/README.md) | Validate local models and the complete governed Document RAG flow. |
 | VAST-native VSS | [`workloads/vast-native-vss/README.md`](workloads/vast-native-vss/README.md) | Build, deploy, validate, and roll back the VAST-native video workflow. |
 | NVIDIA VSS 3.2.1 Search | [`workloads/nvidia-vss-3.2.1-search/README.md`](workloads/nvidia-vss-3.2.1-search/README.md) | Deploy and validate the NVIDIA Search profile on OpenShift. |
+| Warehouse Operations demo | [`demos/warehouse-operations/README.md`](demos/warehouse-operations/README.md) | Continue implementation of the NVIDIA VSS Warehouse profile with reversible switching back to the validated CVD video-search workloads. |
 
 ## Standard walkthrough
 
@@ -72,5 +73,5 @@ python3 scripts/validate-repository.py
 
 The check rejects internal authoring markers and high-confidence credential
 patterns, verifies local Markdown links, parses Python and JSON files, and
-confirms the recorded VAST-native VSS dependency and patch hashes. GitHub
-Actions also checks all shell and YAML syntax.
+confirms the recorded dependency and patch hashes. GitHub Actions also checks
+shell and YAML syntax, Warehouse unit tests, and Helm chart safety.

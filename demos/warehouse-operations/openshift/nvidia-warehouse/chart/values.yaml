@@ -1,0 +1,961 @@
+# This chart is intentionally inert by default. Enabling it does not make the
+# Warehouse profile deployable; see README.md and the acknowledgement gates.
+global:
+  enabled: false
+  acknowledgeIncomplete: false
+  allowGpuPlaceholders: false
+  allowTagOnlyRender: false
+  source:
+    tag: v3.2.1
+    commit: 7640d917047cf7b0fd3085eefb8282754b56bc94
+    releaseMetadata: 3.2.1-26.07.1
+  imagePullSecrets: []
+  storageClass: vastdata-filesystem
+
+nameOverride: ""
+fullnameOverride: warehouse
+
+serviceAccounts:
+  general:
+    create: true
+    name: warehouse-general
+  vios:
+    create: true
+    name: warehouse-vios
+  sdrc:
+    create: true
+    name: warehouse-sdrc
+  gpu:
+    create: true
+    name: warehouse-gpu
+
+rbac:
+  sdrcReadOnly:
+    enabled: true
+
+scheduling:
+  cpu:
+    nodeSelector:
+      net-type: fi-attached
+    tolerations: []
+    affinity: {}
+  gpu:
+    nodeSelector:
+      net-type: c845-cx7
+    tolerations: []
+    affinity: {}
+
+security:
+  pod:
+    runAsNonRoot: true
+    seccompProfile:
+      type: RuntimeDefault
+  container:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+
+# Tags below reproduce the mixed 3.2.0/3.2.1 source lock. Empty digest fields
+# are a known blocker and must be resolved before any deployment review.
+images:
+  alertBridge:
+    repository: nvcr.io/nvidia/vss-core/vss-alert-verification
+    tag: 3.2.0
+    digest: ""
+    pullPolicy: IfNotPresent
+  configurator:
+    repository: nvcr.io/nvidia/vss-core/vss-configurator
+    tag: 3.2.1
+    digest: ""
+    pullPolicy: IfNotPresent
+  kafka:
+    repository: confluentinc/cp-kafka
+    tag: 8.2.0
+    digest: sha256:acbbf674f2ed40e5d0a8ca51beb0f00692c866fc22b5ce06f8cadbdc54cd4436
+    pullPolicy: IfNotPresent
+  postgres:
+    repository: postgres
+    tag: 17.9-alpine
+    digest: sha256:c7526c0f6c3f30260a563d7bcf8ad778effac59a44f8ffa86678c35418338609
+    pullPolicy: IfNotPresent
+  elasticsearch:
+    repository: docker.elastic.co/elasticsearch/elasticsearch
+    tag: 9.3.3
+    digest: sha256:bff1a79d2502b3a328f90d910727b6b7a4d54846dfc5693338db74d2c7971863
+    pullPolicy: IfNotPresent
+  kibana:
+    repository: docker.elastic.co/kibana/kibana
+    tag: 9.3.3
+    digest: sha256:36301dc49650e47484b23803d60f78e0ac763ab4d7edab6c75c1f54a186d5f9d
+    pullPolicy: IfNotPresent
+  logstash:
+    repository: docker.elastic.co/logstash/logstash
+    tag: 9.3.3
+    digest: sha256:a7ad817ec23e2f9c41f8fcd09bcce3c87710890f93612d4fd51de45074d7af2e
+    pullPolicy: IfNotPresent
+  redis:
+    repository: redis
+    tag: 8.6.2-alpine
+    digest: sha256:c5e375abb885e6b2021c0377879e4890bf76f9065b8922ffc113f2b226b9fc17
+    pullPolicy: IfNotPresent
+  phoenix:
+    repository: arizephoenix/phoenix
+    tag: 14.15.0
+    digest: sha256:4902edc412785dcd90ad20172c3b15def87d076a18cfc3c3df44df211993f0f0
+    pullPolicy: IfNotPresent
+  rtviCv:
+    repository: nvcr.io/nvidia/vss-core/vss-rt-cv
+    tag: 3.2.1
+    digest: sha256:1a8b9879686f21cb6b9589d6139b5ac2eb960f1520aa3b4bb5f079d05fee9458
+    pullPolicy: IfNotPresent
+  rtviVlm:
+    repository: nvcr.io/nvidia/vss-core/vss-rt-vlm
+    tag: 3.2.1
+    digest: sha256:5403e0c8fa8b149e7ad15ab1b063b78d610e7a50297dba6ca550ac5cc5ef9504
+    pullPolicy: IfNotPresent
+  nvstreamer:
+    repository: nvcr.io/nvidia/vss-core/vss-vios-nvstreamer
+    tag: 3.2.1
+    digest: sha256:7074784d32f996734ef091405f14965573d40257d843bba29d7ca2ef36f58e4d
+    pullPolicy: IfNotPresent
+  sdr:
+    repository: nvcr.io/nvidia/vss-core/sdr-mw-l
+    tag: 3.2.0
+    digest: sha256:49cdff1ffc5314b82e2339ee28c67bd5055dc6f66ea9fa8fcccb0780dc8cd150
+    pullPolicy: IfNotPresent
+  viosSensor:
+    repository: nvcr.io/nvidia/vss-core/vss-vios-sensor
+    tag: 3.2.1
+    digest: sha256:6dd443f43acd52b00c449238907f38a936d8e3f5d7fb77765d4ece82b3c24cc7
+    pullPolicy: IfNotPresent
+  viosStreamprocessing:
+    repository: nvcr.io/nvidia/vss-core/vss-vios-streamprocessing
+    tag: 3.2.1
+    digest: sha256:c39392210816ae0f4c41576a6b8b4c2b664c05f7808e25b6fcc95854beffc5c9
+    pullPolicy: IfNotPresent
+  agent:
+    repository: nvcr.io/nvidia/vss-core/vss-agent
+    tag: 3.2.1
+    digest: sha256:b7f3246aaf355ebf96e91a40b2f0abc5dea7e330e7bf9a7cf726107b560c3ac1
+    pullPolicy: IfNotPresent
+  behaviorAnalytics:
+    repository: nvcr.io/nvidia/vss-core/vss-behavior-analytics
+    tag: 3.2.1
+    digest: sha256:1dfb51a6592a4fe804487309193c651466258f7b6e90d30fcf403f28374552b1
+    pullPolicy: IfNotPresent
+  ui:
+    repository: nvcr.io/nvidia/vss-core/vss-agent-ui
+    tag: 3.2.0
+    digest: sha256:6362151a839067f517766f1997a19c302296fe80b9b0251aaee8f16b379503d9
+    pullPolicy: IfNotPresent
+  videoAnalyticsApi:
+    repository: nvcr.io/nvidia/vss-core/vss-video-analytics-api
+    tag: 3.2.0
+    digest: sha256:2aef26ab5a7394b42da75c53169a9efaf8d2c9278d19de2a214586aafd5e082d
+    pullPolicy: IfNotPresent
+  viosIngress:
+    repository: nvcr.io/nvidia/vss-core/vss-vios-ingress
+    tag: 3.2.1
+    digest: sha256:631c25cd970a1bcdb1e2a32cab834959276ea2da97698b310fd9b4c9e9e57d14
+    pullPolicy: IfNotPresent
+  nemotron:
+    repository: nvcr.io/nim/nvidia/nvidia-nemotron-nano-9b-v2
+    tag: "1"
+    digest: ""
+    pullPolicy: IfNotPresent
+
+# Existing Secret references only. This chart never creates Secret objects or
+# carries credential values. A component that uses one of these references is
+# still disabled until the Secret name is supplied and independently reviewed.
+secretReferences:
+  ngcCliApiKey:
+    name: ""
+    key: NGC_CLI_API_KEY
+  nvidiaApiKey:
+    name: ""
+    key: NVIDIA_API_KEY
+  openaiApiKey:
+    name: ""
+    key: OPENAI_API_KEY
+  huggingFaceToken:
+    name: ""
+    key: HF_TOKEN
+  adaptorUsername:
+    name: ""
+    key: ADAPTOR_USER
+  adaptorPassword:
+    name: ""
+    key: ADAPTOR_PASSWORD
+
+# Configuration groups map to files in the pinned Warehouse 2D source. Their
+# data maps intentionally remain empty: exact vendor files must be copied from
+# the locked commit and reviewed before a group may be enabled.
+configMaps:
+  blueprintConfigurator:
+    enabled: false
+    immutable: true
+    sourceFiles:
+      - industry-profiles/warehouse-operations/blueprint-configurator/blueprint_config.yml
+      - industry-profiles/warehouse-operations/camera_configs/camera_info.json
+    data: {}
+  alertVerifier:
+    enabled: false
+    immutable: true
+    sourceFiles:
+      - industry-profiles/warehouse-operations/vlm-as-verifier/configs/config.yml
+      - industry-profiles/warehouse-operations/vlm-as-verifier/realtime-config.yml
+      - industry-profiles/warehouse-operations/vlm-as-verifier/configs/alert_type_config.json
+    data: {}
+  agent:
+    enabled: false
+    immutable: true
+    sourceFiles:
+      - industry-profiles/warehouse-operations/vss-agent/configs/config.yml
+      - industry-profiles/warehouse-operations/vss-agent/configs/va_mcp_server_config.yml
+      - industry-profiles/warehouse-operations/vss-agent/templates/incident_report_template.md
+    data: {}
+  deepstream2d:
+    enabled: false
+    immutable: true
+    sourceFiles:
+      - industry-profiles/warehouse-operations/warehouse-2d-app/deepstream/configs/
+    data: {}
+  nvstreamer2d:
+    enabled: false
+    immutable: true
+    sourceFiles:
+      - industry-profiles/warehouse-operations/warehouse-2d-app/nvstreamer/configs/vst-config.json
+      - industry-profiles/warehouse-operations/warehouse-2d-app/nvstreamer/configs/vst-storage.json
+    data: {}
+  sdrc2d:
+    enabled: false
+    immutable: true
+    sourceFiles:
+      - industry-profiles/warehouse-operations/warehouse-2d-app/sdrc/configs/
+    data: {}
+  behaviorAnalytics2d:
+    enabled: false
+    immutable: true
+    sourceFiles:
+      - industry-profiles/warehouse-operations/warehouse-2d-app/vss-behavior-analytics/configs/vss-behavior-analytics-config.json
+    data: {}
+  vios:
+    enabled: false
+    immutable: true
+    sourceFiles:
+      - services/vios/configs/
+      - industry-profiles/warehouse-operations/warehouse-2d-app/vst/configs/vst_config.json
+    data: {}
+  redis:
+    enabled: false
+    immutable: true
+    sourceFiles:
+      - services/infra/redis/configs/redis.conf
+    data: {}
+  kafkaTopics:
+    enabled: false
+    immutable: true
+    sourceFiles:
+      - services/infra/kafka/init-scripts/create-kafka-topics.sh
+    data: {}
+  elasticsearchInit:
+    enabled: false
+    immutable: true
+    sourceFiles:
+      - services/infra/elk/elasticsearch/init-scripts/
+    data: {}
+  kibanaDashboard2d:
+    enabled: false
+    immutable: true
+    sourceFiles:
+      - industry-profiles/warehouse-operations/warehouse-2d-app/kibana-dashboard/warehouse-2d-kibana-objects.ndjson
+      - industry-profiles/warehouse-operations/warehouse-2d-app/kibana-dashboard/init-scripts/kibana-import-dashboard.sh
+    data: {}
+  calibration2d:
+    enabled: false
+    immutable: true
+    sourceFiles:
+      - industry-profiles/warehouse-operations/warehouse-2d-app/calibration/sample-data/nv-warehouse-4cams/
+      - industry-profiles/warehouse-operations/warehouse-2d-app/import-calibration/init-scripts/calibration-import.sh
+    data: {}
+
+# Standalone retained claims required by services that are not represented by
+# the StatefulSet claim templates below. Sizes marked provisional remain a
+# review gate; all claims are disabled and annotated for Helm retention.
+persistentVolumeClaims:
+  viosData:
+    enabled: false
+    keep: true
+    storageClass: vastdata-filesystem
+    size: 10Gi
+    accessModes: [ReadWriteMany]
+    status: provisional
+  viosVideos:
+    enabled: false
+    keep: true
+    storageClass: vastdata-filesystem
+    size: 100Gi
+    accessModes: [ReadWriteMany]
+    status: provisional
+  clipStorage:
+    enabled: false
+    keep: true
+    storageClass: vastdata-filesystem
+    size: 20Gi
+    accessModes: [ReadWriteMany]
+    status: provisional
+  perceptionModels:
+    enabled: false
+    keep: true
+    storageClass: vastdata-filesystem
+    size: 50Gi
+    accessModes: [ReadWriteOnce]
+    status: provisional
+  rtviHfCache:
+    enabled: false
+    keep: true
+    storageClass: vastdata-filesystem
+    size: 50Gi
+    accessModes: [ReadWriteOnce]
+    status: unresolved-model-size
+  rtviNgcCache:
+    enabled: false
+    keep: true
+    storageClass: vastdata-filesystem
+    size: 50Gi
+    accessModes: [ReadWriteOnce]
+    status: unresolved-model-size
+  nemotronCache:
+    enabled: false
+    keep: true
+    storageClass: vastdata-filesystem
+    size: 50Gi
+    accessModes: [ReadWriteOnce]
+    status: provisional
+  videoAnalyticsFiles:
+    enabled: false
+    keep: true
+    storageClass: vastdata-filesystem
+    size: 5Gi
+    accessModes: [ReadWriteOnce]
+    status: provisional
+  agentReports:
+    enabled: false
+    keep: true
+    storageClass: vastdata-filesystem
+    size: 10Gi
+    accessModes: [ReadWriteOnce]
+    status: provisional
+  phoenixData:
+    enabled: false
+    keep: true
+    storageClass: vastdata-filesystem
+    size: 10Gi
+    accessModes: [ReadWriteOnce]
+    status: provisional
+
+# One-shot source classes represented as bounded Kubernetes Jobs. None is
+# render-ready yet: the derived helper images/scripts and immutable digests are
+# unresolved. Enabling a blocked entry intentionally fails Helm rendering.
+initializationJobs:
+  kafkaTopics:
+    enabled: false
+    implementationStatus: blocked-unpinned-jq
+    image: kafka
+    serviceAccount: general
+    command: []
+    args: []
+    configMapMounts:
+      - {configMap: kafkaTopics, mountPath: /opt/warehouse/kafka, readOnly: true}
+    secretEnv: []
+    backoffLimit: 3
+    activeDeadlineSeconds: 600
+  brokerGate:
+    enabled: false
+    implementationStatus: blocked-derived-image
+    image: ""
+    serviceAccount: general
+    command: []
+    args: []
+    configMapMounts: []
+    secretEnv: []
+    backoffLimit: 3
+    activeDeadlineSeconds: 300
+  elasticsearchInit:
+    enabled: false
+    implementationStatus: blocked-derived-image
+    image: ""
+    serviceAccount: general
+    command: []
+    args: []
+    configMapMounts:
+      - {configMap: elasticsearchInit, mountPath: /opt/warehouse/elasticsearch, readOnly: true}
+    secretEnv: []
+    backoffLimit: 3
+    activeDeadlineSeconds: 600
+  kibanaDashboard:
+    enabled: false
+    implementationStatus: blocked-derived-image
+    image: ""
+    serviceAccount: general
+    command: []
+    args: []
+    configMapMounts:
+      - {configMap: kibanaDashboard2d, mountPath: /opt/warehouse/kibana, readOnly: true}
+    secretEnv: []
+    backoffLimit: 3
+    activeDeadlineSeconds: 600
+  calibrationImport:
+    enabled: false
+    implementationStatus: blocked-derived-image
+    image: ""
+    serviceAccount: general
+    command: []
+    args: []
+    configMapMounts:
+      - {configMap: calibration2d, mountPath: /opt/warehouse/calibration, readOnly: true}
+    secretEnv: []
+    backoffLimit: 3
+    activeDeadlineSeconds: 600
+
+# Browser-facing endpoints identified by the pinned source and porting matrix.
+# Hostnames are deliberately blank and every Route remains disabled.
+routes:
+  ui:
+    enabled: false
+    host: ""
+    path: /
+    service: ui
+    port: http
+    timeout: ""
+  agentApi:
+    enabled: false
+    host: ""
+    path: /api
+    service: agent
+    port: http
+    timeout: 3600s
+  agentChat:
+    enabled: false
+    host: ""
+    path: /chat
+    service: agent
+    port: http
+    timeout: 3600s
+  agentWebsocket:
+    enabled: false
+    host: ""
+    path: /websocket
+    service: agent
+    port: http
+    timeout: 3600s
+  agentStatic:
+    enabled: false
+    host: ""
+    path: /static
+    service: agent
+    port: http
+    timeout: ""
+  alertBridge:
+    enabled: false
+    host: ""
+    path: /alert-bridge
+    service: alertBridge
+    port: http
+    timeout: 3600s
+  viosIngress:
+    enabled: false
+    host: ""
+    path: /vst
+    service: viosIngress
+    port: vst
+    timeout: 3600s
+  videoAnalyticsApi:
+    enabled: false
+    host: ""
+    path: /video-analytics-api
+    service: videoAnalyticsApi
+    port: http
+    timeout: ""
+  kibana:
+    enabled: false
+    host: ""
+    path: /kibana
+    service: kibana
+    port: http
+    timeout: ""
+  nvstreamer:
+    enabled: false
+    host: ""
+    path: /
+    service: nvstreamer
+    port: http
+    timeout: 3600s
+
+# NetworkPolicy remains a separate acknowledgement gate because source-to-
+# OpenShift flows still require runtime verification. When enabled it renders
+# default deny plus only the explicitly selected allowances.
+networkPolicies:
+  enabled: false
+  acknowledgeIncomplete: false
+  allowSameRelease: false
+  dns:
+    enabled: false
+    namespaceSelector: {}
+    podSelector: {}
+  routerIngress:
+    enabled: false
+    namespaceSelector: {}
+    podSelector: {}
+
+# Stateful data services. Each entry is independently disabled. The commands,
+# configuration, resource sizes, and probes are scaffolding, not accepted
+# runtime settings.
+statefulServices:
+  kafka:
+    enabled: false
+    image: kafka
+    serviceAccount: general
+    replicas: 1
+    headless: true
+    ports:
+      - name: broker
+        port: 9092
+        protocol: TCP
+      - name: controller
+        port: 9093
+        protocol: TCP
+    probe:
+      enabled: true
+      type: tcp
+      port: broker
+      path: ""
+      startupFailureThreshold: 60
+      periodSeconds: 10
+    env:
+      KAFKA_HEAP_OPTS: -Xms6g -Xmx6g
+    claims:
+      - name: data
+        mountPath: /var/lib/kafka/data
+        size: 50Gi
+        accessModes: [ReadWriteOnce]
+    resources:
+      requests:
+        cpu: 500m
+        memory: 8Gi
+      limits:
+        cpu: "2"
+        memory: 10Gi
+  redis:
+    enabled: false
+    image: redis
+    serviceAccount: general
+    replicas: 1
+    headless: true
+    ports:
+      - name: redis
+        port: 6379
+        protocol: TCP
+    probe:
+      enabled: true
+      type: tcp
+      port: redis
+      path: ""
+      startupFailureThreshold: 30
+      periodSeconds: 5
+    env: {}
+    configMapMounts:
+      - {configMap: redis, mountPath: /etc/redis, readOnly: true}
+    secretEnv: []
+    claims:
+      - name: data
+        mountPath: /data
+        size: 5Gi
+        accessModes: [ReadWriteOnce]
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 1Gi
+  elasticsearch:
+    enabled: false
+    image: elasticsearch
+    serviceAccount: general
+    replicas: 1
+    headless: true
+    ports:
+      - name: http
+        port: 9200
+        protocol: TCP
+      - name: transport
+        port: 9300
+        protocol: TCP
+    probe:
+      enabled: true
+      type: http
+      port: http
+      path: /_cluster/health
+      startupFailureThreshold: 60
+      periodSeconds: 10
+    env:
+      discovery.type: single-node
+      ES_JAVA_OPTS: -Xms1g -Xmx1g
+    claims:
+      - name: data
+        mountPath: /usr/share/elasticsearch/data
+        size: 100Gi
+        accessModes: [ReadWriteOnce]
+      - name: logs
+        mountPath: /usr/share/elasticsearch/logs
+        size: 20Gi
+        accessModes: [ReadWriteOnce]
+    resources:
+      requests:
+        cpu: 500m
+        memory: 2Gi
+      limits:
+        cpu: "2"
+        memory: 4Gi
+  viosPostgres:
+    enabled: false
+    image: postgres
+    serviceAccount: vios
+    replicas: 1
+    headless: true
+    ports:
+      - name: postgres
+        port: 5432
+        protocol: TCP
+    probe:
+      enabled: true
+      type: tcp
+      port: postgres
+      path: ""
+      startupFailureThreshold: 60
+      periodSeconds: 5
+    env:
+      PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_USER: postgres
+      POSTGRES_DB: vios
+    configMapMounts:
+      - {configMap: vios, mountPath: /etc/postgresql, readOnly: true}
+    secretEnv: []
+    claims:
+      - name: data
+        mountPath: /var/lib/postgresql/data
+        size: 10Gi
+        accessModes: [ReadWriteOnce]
+    resources:
+      requests:
+        cpu: 250m
+        memory: 512Mi
+      limits:
+        cpu: "1"
+        memory: 2Gi
+
+# Namespace-local CPU services. Their configuration, storage, Secret, Route,
+# and initialization dependencies are wired only through disabled scaffolding.
+cpuServices:
+  configurator:
+    enabled: false
+    image: configurator
+    serviceAccount: general
+    replicas: 1
+    ports: [{name: http, port: 5001, protocol: TCP}]
+    service: {enabled: true, type: ClusterIP}
+    probe: {enabled: true, type: http, port: http, path: /readyz, startupFailureThreshold: 30, periodSeconds: 10}
+    env: {}
+    configMapMounts:
+      - {configMap: blueprintConfigurator, mountPath: /opt/warehouse/configurator, readOnly: true}
+      - {configMap: calibration2d, mountPath: /opt/data, readOnly: true}
+    claimMounts: []
+    secretEnv:
+      - {name: ADAPTOR_USER, secret: adaptorUsername}
+      - {name: ADAPTOR_PASSWORD, secret: adaptorPassword}
+    resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {cpu: 500m, memory: 1Gi}}
+  kibana:
+    enabled: false
+    image: kibana
+    serviceAccount: general
+    replicas: 1
+    ports: [{name: http, port: 5601, protocol: TCP}]
+    service: {enabled: true, type: ClusterIP}
+    probe: {enabled: true, type: http, port: http, path: /kibana/api/status, startupFailureThreshold: 60, periodSeconds: 10}
+    env:
+      ELASTICSEARCH_HOSTS: http://warehouse-elasticsearch:9200
+      SERVER_BASEPATH: /kibana
+    resources: {requests: {cpu: 250m, memory: 512Mi}, limits: {cpu: "1", memory: 2Gi}}
+  logstash:
+    enabled: false
+    image: logstash
+    serviceAccount: general
+    replicas: 1
+    ports: []
+    service: {enabled: false, type: ClusterIP}
+    probe: {enabled: false, type: tcp, port: "", path: "", startupFailureThreshold: 30, periodSeconds: 10}
+    env:
+      LS_JAVA_OPTS: -Xms1g -Xmx1g
+    resources: {requests: {cpu: 250m, memory: 2Gi}, limits: {cpu: "1", memory: 4Gi}}
+  behaviorAnalytics:
+    enabled: false
+    image: behaviorAnalytics
+    serviceAccount: general
+    replicas: 1
+    ports: [{name: http, port: 8080, protocol: TCP}]
+    service: {enabled: true, type: ClusterIP}
+    probe: {enabled: true, type: tcp, port: http, path: "", startupFailureThreshold: 30, periodSeconds: 10}
+    env: {}
+    configMapMounts:
+      - {configMap: behaviorAnalytics2d, mountPath: /resources/config, readOnly: true}
+      - {configMap: calibration2d, mountPath: /resources/calibration, readOnly: true}
+    claimMounts: []
+    secretEnv: []
+    resources: {requests: {cpu: 250m, memory: 512Mi}, limits: {cpu: "1", memory: 2Gi}}
+  videoAnalyticsApi:
+    enabled: false
+    image: videoAnalyticsApi
+    serviceAccount: general
+    replicas: 1
+    ports: [{name: http, port: 8081, protocol: TCP}]
+    service: {enabled: true, type: ClusterIP}
+    probe: {enabled: true, type: tcp, port: http, path: "", startupFailureThreshold: 30, periodSeconds: 10}
+    env: {}
+    configMapMounts: []
+    claimMounts:
+      - {claim: videoAnalyticsFiles, mountPath: /web-api-app/files, readOnly: false}
+    secretEnv: []
+    resources: {requests: {cpu: 250m, memory: 512Mi}, limits: {cpu: "1", memory: 2Gi}}
+  alertBridge:
+    enabled: false
+    image: alertBridge
+    serviceAccount: general
+    replicas: 1
+    ports: [{name: http, port: 9080, protocol: TCP}]
+    service: {enabled: true, type: ClusterIP}
+    probe: {enabled: true, type: tcp, port: http, path: "", startupFailureThreshold: 30, periodSeconds: 10}
+    env: {}
+    configMapMounts:
+      - {configMap: alertVerifier, mountPath: /app/configs, readOnly: true}
+    claimMounts: []
+    secretEnv: []
+    resources: {requests: {cpu: 250m, memory: 512Mi}, limits: {cpu: "1", memory: 2Gi}}
+  viosIngress:
+    enabled: false
+    image: viosIngress
+    serviceAccount: vios
+    replicas: 1
+    ports: [{name: vst, port: 30888, protocol: TCP}]
+    service: {enabled: true, type: ClusterIP}
+    probe: {enabled: true, type: tcp, port: vst, path: "", startupFailureThreshold: 30, periodSeconds: 5}
+    env: {}
+    configMapMounts:
+      - {configMap: vios, mountPath: /etc/warehouse/vios, readOnly: true}
+    claimMounts:
+      - {claim: viosData, mountPath: /var/log/nginx, readOnly: false}
+    secretEnv: []
+    resources: {requests: {cpu: 250m, memory: 512Mi}, limits: {cpu: "1", memory: 2Gi}}
+  sdrc:
+    enabled: false
+    image: sdr
+    serviceAccount: sdrc
+    replicas: 1
+    ports:
+      - {name: controller, port: 5003, protocol: TCP}
+      - {name: direct, port: 8011, protocol: TCP}
+      - {name: admin, port: 9902, protocol: TCP}
+    service: {enabled: true, type: ClusterIP}
+    probe: {enabled: true, type: tcp, port: controller, path: "", startupFailureThreshold: 30, periodSeconds: 10}
+    env: {}
+    configMapMounts:
+      - {configMap: sdrc2d, mountPath: /opt/warehouse/sdrc, readOnly: true}
+    claimMounts: []
+    secretEnv: []
+    resources: {requests: {cpu: 250m, memory: 512Mi}, limits: {cpu: "1", memory: 2Gi}}
+  vaMcp:
+    enabled: false
+    image: agent
+    serviceAccount: general
+    replicas: 1
+    ports: [{name: http, port: 9901, protocol: TCP}]
+    service: {enabled: true, type: ClusterIP}
+    probe: {enabled: true, type: http, port: http, path: /health, startupFailureThreshold: 30, periodSeconds: 10}
+    env: {}
+    configMapMounts:
+      - {configMap: agent, mountPath: /vss-agent/config, readOnly: true}
+    claimMounts: []
+    secretEnv: []
+    resources: {requests: {cpu: 250m, memory: 512Mi}, limits: {cpu: "1", memory: 2Gi}}
+  agent:
+    enabled: false
+    image: agent
+    serviceAccount: general
+    replicas: 1
+    ports: [{name: http, port: 8000, protocol: TCP}]
+    service: {enabled: true, type: ClusterIP}
+    probe: {enabled: true, type: http, port: http, path: /health, startupFailureThreshold: 60, periodSeconds: 10}
+    env:
+      VIDEO_ANALYSIS_MCP_URL: http://warehouse-va-mcp:9901
+      PHOENIX_ENDPOINT: http://warehouse-phoenix:6006
+    configMapMounts:
+      - {configMap: agent, mountPath: /vss-agent/config, readOnly: true}
+    claimMounts:
+      - {claim: agentReports, mountPath: /vss-agent/reports, readOnly: false}
+    secretEnv: []
+    resources: {requests: {cpu: 500m, memory: 1Gi}, limits: {cpu: "2", memory: 4Gi}}
+  ui:
+    enabled: false
+    image: ui
+    serviceAccount: general
+    replicas: 1
+    ports: [{name: http, port: 3000, protocol: TCP}]
+    service: {enabled: true, type: ClusterIP}
+    probe: {enabled: true, type: tcp, port: http, path: "", startupFailureThreshold: 30, periodSeconds: 10}
+    env: {}
+    resources: {requests: {cpu: 100m, memory: 256Mi}, limits: {cpu: 500m, memory: 1Gi}}
+  phoenix:
+    enabled: false
+    image: phoenix
+    serviceAccount: general
+    replicas: 1
+    ports: [{name: http, port: 6006, protocol: TCP}]
+    service: {enabled: true, type: ClusterIP}
+    probe: {enabled: true, type: tcp, port: http, path: "", startupFailureThreshold: 60, periodSeconds: 10}
+    env: {}
+    configMapMounts: []
+    claimMounts:
+      - {claim: phoenixData, mountPath: /root/.phoenix, readOnly: false}
+    secretEnv: []
+    resources: {requests: {cpu: 250m, memory: 512Mi}, limits: {cpu: "1", memory: 2Gi}}
+
+# GPU and NVIDIA-runtime candidates are placeholders. A component cannot render
+# unless all three gates are explicitly set: global.enabled,
+# global.acknowledgeIncomplete, and global.allowGpuPlaceholders.
+gpuWorkloads:
+  rtviCv:
+    enabled: false
+    kind: StatefulSet
+    image: rtviCv
+    serviceAccount: gpu
+    standbyReplicas: 0
+    activeReplicas: 1
+    ports: [{name: api, port: 9000, protocol: TCP}]
+    headless: true
+    gpuCount: 1
+    allocationStatus: definite
+    probe: {enabled: true, type: tcp, port: api, path: "", startupFailureThreshold: 120, periodSeconds: 10}
+    configMapMounts:
+      - {configMap: deepstream2d, mountPath: /opt/nvidia/deepstream/deepstream/sources/apps/sample_apps/metropolis_perception_app/configs, readOnly: true}
+    claimMounts:
+      - {claim: perceptionModels, mountPath: /opt/storage, readOnly: false}
+    secretEnv: []
+    sharedMemory: {enabled: false, sizeLimit: 1Gi}
+    resources: {requests: {cpu: "2", memory: 8Gi, nvidia.com/gpu: 1}, limits: {cpu: "8", memory: 32Gi, nvidia.com/gpu: 1}}
+  rtviVlm:
+    enabled: false
+    kind: Deployment
+    image: rtviVlm
+    serviceAccount: gpu
+    standbyReplicas: 0
+    activeReplicas: 1
+    ports: [{name: http, port: 8000, protocol: TCP}]
+    headless: false
+    gpuCount: 1
+    allocationStatus: definite
+    probe: {enabled: true, type: http, port: http, path: /v1/health/ready, startupFailureThreshold: 40, periodSeconds: 30}
+    configMapMounts:
+      - {configMap: alertVerifier, mountPath: /opt/warehouse/alert-verifier, readOnly: true}
+    claimMounts:
+      - {claim: rtviHfCache, mountPath: /tmp/huggingface, readOnly: false}
+      - {claim: rtviNgcCache, mountPath: /opt/nvidia/rtvi/.rtvi/ngc_model_cache, readOnly: false}
+      - {claim: clipStorage, mountPath: /home/vst/vst_release/streamer_videos, readOnly: true}
+    secretEnv:
+      - {name: NGC_API_KEY, secret: ngcCliApiKey}
+    sharedMemory: {enabled: true, sizeLimit: 16Gi}
+    resources: {requests: {cpu: "2", memory: 16Gi, nvidia.com/gpu: 1}, limits: {cpu: "8", memory: 48Gi, nvidia.com/gpu: 1}}
+  nemotronNano:
+    enabled: false
+    kind: Deployment
+    image: nemotron
+    serviceAccount: gpu
+    standbyReplicas: 0
+    activeReplicas: 1
+    ports: [{name: http, port: 8000, protocol: TCP}]
+    headless: false
+    gpuCount: 1
+    allocationStatus: definite
+    probe: {enabled: true, type: http, port: http, path: /v1/health/ready, startupFailureThreshold: 60, periodSeconds: 10}
+    configMapMounts: []
+    claimMounts:
+      - {claim: nemotronCache, mountPath: /opt/nim/.cache, readOnly: false}
+    secretEnv:
+      - {name: NGC_API_KEY, secret: ngcCliApiKey}
+    sharedMemory: {enabled: true, sizeLimit: 16Gi}
+    resources: {requests: {cpu: "2", memory: 16Gi, nvidia.com/gpu: 1}, limits: {cpu: "8", memory: 48Gi, nvidia.com/gpu: 1}}
+  nvstreamer:
+    enabled: false
+    kind: Deployment
+    image: nvstreamer
+    serviceAccount: gpu
+    standbyReplicas: 0
+    activeReplicas: 1
+    ports:
+      - {name: http, port: 31000, protocol: TCP}
+      - {name: rtsp, port: 31554, protocol: TCP}
+    headless: false
+    gpuCount: 1
+    allocationStatus: provisional-separate-device
+    probe: {enabled: true, type: tcp, port: http, path: "", startupFailureThreshold: 60, periodSeconds: 10}
+    configMapMounts:
+      - {configMap: nvstreamer2d, mountPath: /home/vst/vst_release/configs, readOnly: true}
+    claimMounts:
+      - {claim: viosVideos, mountPath: /tmp/nv_streamer/videos, readOnly: true}
+      - {claim: clipStorage, mountPath: /home/vst/vst_release/streamer_videos, readOnly: false}
+    secretEnv: []
+    sharedMemory: {enabled: false, sizeLimit: 1Gi}
+    resources: {requests: {cpu: "1", memory: 4Gi, nvidia.com/gpu: 1}, limits: {cpu: "4", memory: 16Gi, nvidia.com/gpu: 1}}
+  viosStreamprocessing:
+    enabled: false
+    kind: StatefulSet
+    image: viosStreamprocessing
+    serviceAccount: gpu
+    standbyReplicas: 0
+    activeReplicas: 1
+    ports:
+      - {name: api, port: 30001, protocol: TCP}
+      - {name: rtsp, port: 30554, protocol: TCP}
+    headless: true
+    gpuCount: 1
+    allocationStatus: provisional-runtime-audit
+    probe: {enabled: true, type: tcp, port: api, path: "", startupFailureThreshold: 150, periodSeconds: 10}
+    configMapMounts:
+      - {configMap: vios, mountPath: /opt/warehouse/vios, readOnly: true}
+    claimMounts:
+      - {claim: viosData, mountPath: /opt/vios/data, readOnly: false}
+      - {claim: viosVideos, mountPath: /opt/vios/videos, readOnly: false}
+      - {claim: clipStorage, mountPath: /opt/vios/clips, readOnly: false}
+    secretEnv: []
+    sharedMemory: {enabled: false, sizeLimit: 1Gi}
+    resources: {requests: {cpu: "1", memory: 4Gi, nvidia.com/gpu: 1}, limits: {cpu: "4", memory: 16Gi, nvidia.com/gpu: 1}}
+  viosSensor:
+    enabled: false
+    kind: Deployment
+    image: viosSensor
+    serviceAccount: gpu
+    standbyReplicas: 0
+    activeReplicas: 1
+    ports: [{name: api, port: 30000, protocol: TCP}]
+    headless: false
+    gpuCount: 0
+    allocationStatus: unresolved-runtime-no-request
+    probe: {enabled: true, type: tcp, port: api, path: "", startupFailureThreshold: 60, periodSeconds: 10}
+    configMapMounts:
+      - {configMap: vios, mountPath: /opt/warehouse/vios, readOnly: true}
+    claimMounts:
+      - {claim: viosData, mountPath: /opt/vios/data, readOnly: false}
+      - {claim: viosVideos, mountPath: /opt/vios/videos, readOnly: false}
+    secretEnv: []
+    sharedMemory: {enabled: false, sizeLimit: 1Gi}
+    resources: {requests: {cpu: 500m, memory: 1Gi}, limits: {cpu: "2", memory: 4Gi}}

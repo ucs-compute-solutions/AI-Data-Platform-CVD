@@ -1,0 +1,93 @@
+{{- include "nvidia-warehouse.assertSafety" . -}}
+{{- if .Values.global.enabled }}
+{{- range $key, $job := .Values.initializationJobs }}
+{{- if $job.enabled }}
+{{- if ne $job.implementationStatus "render-ready" }}
+{{- fail (printf "initializationJobs.%s is blocked: %s" $key $job.implementationStatus) }}
+{{- end }}
+{{- $imageKey := required (printf "initializationJobs.%s.image is required" $key) $job.image }}
+{{- $image := index $.Values.images $imageKey }}
+{{- if not $image }}{{ fail (printf "initializationJobs.%s references unknown images.%s" $key $imageKey) }}{{- end }}
+{{- if eq (len $job.command) 0 }}{{ fail (printf "initializationJobs.%s.command is required" $key) }}{{- end }}
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "nvidia-warehouse.componentName" (dict "root" $ "name" $key) }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "nvidia-warehouse.labels" (dict "root" $ "component" $key) | nindent 4 }}
+spec:
+  backoffLimit: {{ $job.backoffLimit }}
+  activeDeadlineSeconds: {{ $job.activeDeadlineSeconds }}
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        {{- include "nvidia-warehouse.selectorLabels" (dict "root" $ "component" $key) | nindent 8 }}
+      annotations:
+        warehouse.nvidia.com/design-status: render-only-incomplete
+    spec:
+      restartPolicy: Never
+      serviceAccountName: {{ include "nvidia-warehouse.serviceAccountName" (dict "root" $ "key" $job.serviceAccount) }}
+      securityContext:
+        {{- toYaml $.Values.security.pod | nindent 8 }}
+      {{- with $.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ $key | kebabcase }}
+          image: {{ include "nvidia-warehouse.image" (dict "root" $ "image" $image) }}
+          imagePullPolicy: {{ $image.pullPolicy }}
+          securityContext:
+            {{- toYaml $.Values.security.container | nindent 12 }}
+          command:
+            {{- toYaml $job.command | nindent 12 }}
+          {{- with $job.args }}
+          args:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "nvidia-warehouse.componentName" (dict "root" $ "name" "source-lock") }}
+          {{- with $job.secretEnv }}
+          env:
+            {{- range $secretEnv := . }}
+            {{- $secret := index $.Values.secretReferences $secretEnv.secret }}
+            {{- if not $secret }}{{ fail (printf "initializationJobs.%s references unknown secretReferences.%s" $key $secretEnv.secret) }}{{- end }}
+            - name: {{ $secretEnv.name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required (printf "secretReferences.%s.name is required" $secretEnv.secret) $secret.name }}
+                  key: {{ required (printf "secretReferences.%s.key is required" $secretEnv.secret) $secret.key }}
+            {{- end }}
+          {{- end }}
+          {{- with $job.configMapMounts }}
+          volumeMounts:
+            {{- range $mount := . }}
+            {{- $config := index $.Values.configMaps $mount.configMap }}
+            {{- if not $config }}{{ fail (printf "initializationJobs.%s references unknown configMaps.%s" $key $mount.configMap) }}{{- end }}
+            {{- if not $config.enabled }}{{ fail (printf "initializationJobs.%s requires configMaps.%s.enabled=true" $key $mount.configMap) }}{{- end }}
+            - name: {{ printf "config-%s" ($mount.configMap | kebabcase) | trunc 63 | trimSuffix "-" }}
+              mountPath: {{ $mount.mountPath }}
+              readOnly: {{ $mount.readOnly }}
+            {{- end }}
+          {{- end }}
+      {{- with $job.configMapMounts }}
+      volumes:
+        {{- range $mount := . }}
+        - name: {{ printf "config-%s" ($mount.configMap | kebabcase) | trunc 63 | trimSuffix "-" }}
+          configMap:
+            name: {{ include "nvidia-warehouse.componentName" (dict "root" $ "name" $mount.configMap) }}
+        {{- end }}
+      {{- end }}
+      nodeSelector:
+        {{- toYaml $.Values.scheduling.cpu.nodeSelector | nindent 8 }}
+      tolerations:
+        {{- toYaml $.Values.scheduling.cpu.tolerations | nindent 8 }}
+      affinity:
+        {{- toYaml $.Values.scheduling.cpu.affinity | nindent 8 }}
+{{- end }}
+{{- end }}
+{{- end }}

@@ -1,0 +1,41 @@
+{{- include "nvidia-warehouse.assertSafety" . -}}
+{{- if .Values.global.enabled }}
+{{- range $key, $route := .Values.routes }}
+{{- if $route.enabled }}
+{{- $cpu := index $.Values.cpuServices $route.service }}
+{{- $gpu := index $.Values.gpuWorkloads $route.service }}
+{{- if and (not $cpu) (not $gpu) }}{{ fail (printf "routes.%s references unknown service component %s" $key $route.service) }}{{- end }}
+{{- if and $cpu (or (not $cpu.enabled) (not $cpu.service.enabled)) }}{{ fail (printf "routes.%s requires cpuServices.%s and its Service to be enabled" $key $route.service) }}{{- end }}
+{{- if and $gpu (not $gpu.enabled) }}{{ fail (printf "routes.%s requires gpuWorkloads.%s.enabled=true" $key $route.service) }}{{- end }}
+{{- $portFound := false }}
+{{- if $cpu }}{{- range $port := $cpu.ports }}{{- if eq $port.name $route.port }}{{- $portFound = true }}{{- end }}{{- end }}{{- end }}
+{{- if $gpu }}{{- range $port := $gpu.ports }}{{- if eq $port.name $route.port }}{{- $portFound = true }}{{- end }}{{- end }}{{- end }}
+{{- if not $portFound }}{{ fail (printf "routes.%s target port %s is not declared by %s" $key $route.port $route.service) }}{{- end }}
+---
+apiVersion: route.openshift.io/v1
+kind: Route
+metadata:
+  name: {{ include "nvidia-warehouse.componentName" (dict "root" $ "name" $key) }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "nvidia-warehouse.labels" (dict "root" $ "component" $key) | nindent 4 }}
+  {{- with $route.timeout }}
+  annotations:
+    haproxy.router.openshift.io/timeout: {{ . | quote }}
+  {{- end }}
+spec:
+  host: {{ required (printf "routes.%s.host is required" $key) $route.host | quote }}
+  path: {{ $route.path | quote }}
+  to:
+    kind: Service
+    name: {{ include "nvidia-warehouse.componentName" (dict "root" $ "name" $route.service) }}
+    weight: 100
+  port:
+    targetPort: {{ $route.port }}
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
+{{- end }}
+{{- end }}
+{{- end }}

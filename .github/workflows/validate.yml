@@ -42,10 +42,24 @@ jobs:
       - name: Validate repository content
         run: python3 scripts/validate-repository.py
 
+      - name: Run Warehouse Operations unit tests
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          python3 -B -m unittest discover \
+            -s demos/warehouse-operations/tests \
+            -p 'test_*.py' -v
+
       - name: Install Helm
         uses: Azure/setup-helm@1a275c3b69536ee54be43f2070a358922e12c8d4 # v4.3.1
         with:
           version: v3.18.4
 
-      - name: Lint Helm chart
-        run: helm lint charts/vast-vss-app
+      - name: Lint and render Helm charts
+        run: |
+          set -euo pipefail
+          helm lint charts/vast-vss-app
+          helm lint demos/warehouse-operations/openshift/nvidia-warehouse/chart
+          helm template warehouse-operations \
+            demos/warehouse-operations/openshift/nvidia-warehouse/chart \
+            >/dev/null

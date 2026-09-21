@@ -1,0 +1,17 @@
+NVIDIA Warehouse OpenShift skeleton {{ .Chart.Version }}
+
+{{- if not .Values.global.enabled }}
+SAFE DEFAULT: global.enabled=false, so this release rendered no Kubernetes resources.
+{{- else }}
+INCOMPLETE DESIGN ACKNOWLEDGED: namespace-scoped skeleton resources may have rendered.
+This output is not approved for deployment and has not passed the Warehouse runtime gates.
+{{- end }}
+
+Source tag: {{ .Values.global.source.tag }}
+Source commit: {{ .Values.global.source.commit }}
+Target namespace: {{ .Release.Namespace }}
+
+Read README.md before changing any enable flag. The chart never creates Secrets,
+SCC bindings, namespaces, or cluster-scoped resources. Route, ConfigMap, PVC, Job,
+NetworkPolicy, service, and workload entries all remain individually disabled. GPU
+workloads require global.allowGpuPlaceholders=true and render at zero replicas.

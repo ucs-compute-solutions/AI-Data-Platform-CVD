@@ -1,0 +1,225 @@
+lock_version: "1.0"
+status: pre-deployment-incomplete
+generated_date: "2026-09-21"
+
+source:
+  repository: https://github.com/NVIDIA-AI-Blueprints/video-search-and-summarization
+  tag: v3.2.1
+  commit: 7640d917047cf7b0fd3085eefb8282754b56bc94
+  release_metadata: 3.2.1-26.07.1
+  compose_root: deploy/docker/compose.yml
+
+profile:
+  mode: 2d
+  blueprint_profile: bp_wh
+  hardware_profile: RTXPRO6000BW
+  sample_video_dataset: nv-warehouse-4cams
+  stream_count: 4
+  stream_type: kafka
+  llm_mode: local
+  vlm_mode: none
+  active_compose_profiles:
+    - bp_wh_2d
+    - llm_local_nvidia-nemotron-nano-9b-v2
+  resolved_service_count: 40
+  long_running_service_count: 28
+  init_service_count: 12
+
+dataset:
+  resource: nvidia/vss-warehouse/vss-warehouse-app-data
+  version: "3.2.0"
+  archive_filename: vss-warehouse-app-data.tar.gz
+  archive_byte_size: 2323598279
+  archive_sha256: a9e6e2f63e87d5cb376d965d1e8dd78151d482cc05a5067b694435886044f3ce
+  video_manifest: ../../data/warehouse-data-manifest.yaml
+
+models:
+  perception:
+    resource: nvidia/tao/rtdetr_2d_warehouse
+    version: deployable_rn50_v1.0.2
+  integrated_vlm:
+    resource: ngc:nim/nvidia/cosmos3-nano-reasoner
+    version: bf16-final
+    selector: cosmos-reason3
+  agent_llm:
+    resource: nvidia/nvidia-nemotron-nano-9b-v2
+    image: nvcr.io/nim/nvidia/nvidia-nemotron-nano-9b-v2:1
+
+gpu_compose_assignments:
+  - device_id: 0
+    services: [nvstreamer-2d, perception-2d]
+    openshift_status: unresolved-shared-device
+  - device_id: 1
+    services: [rtvi-vlm]
+    openshift_status: exclusive-target
+  - device_id: 2
+    services: [nvidia-nemotron-nano-9b-v2]
+    openshift_status: exclusive-target
+  - device_id: unspecified
+    services: [sensor-ms-2d, streamprocessing-ms-2d]
+    openshift_status: nvidia-runtime-requirement-pending
+
+# The 3.2.1 source intentionally references both 3.2.0 and 3.2.1 images.
+# Preserve these source tags; resolve every deployable reference to a registry
+# digest before applying any OpenShift manifest.
+images:
+  - nvcr.io/nvidia/vss-core/vss-alert-verification:3.2.0
+  - nvcr.io/nvidia/vss-core/vss-configurator:3.2.1
+  - confluentinc/cp-kafka:8.2.0
+  - ghcr.io/google/cadvisor:0.56.2
+  - postgres:17.9-alpine
+  - nvidia/dcgm-exporter:3.3.6-3.4.2-ubuntu22.04
+  - docker.elastic.co/elasticsearch/elasticsearch:9.3.3
+  - grafana/grafana:13.0.1-ubuntu
+  - alpine:3.23.4
+  - docker.elastic.co/kibana/kibana:9.3.3
+  - docker.elastic.co/logstash/logstash:9.3.3
+  - quay.io/prometheus/node-exporter:v1.11.1
+  - nvcr.io/nim/nvidia/nvidia-nemotron-nano-9b-v2:1
+  - nvcr.io/nvidia/vss-core/vss-vios-nvstreamer:3.2.1
+  - nvcr.io/nvidia/vss-core/vss-rt-cv:3.2.1
+  - arizephoenix/phoenix:14.15.0
+  - quay.io/prometheus/prometheus:v3.11.3
+  - redis:8.6.2-alpine
+  - nvcr.io/nvidia/vss-core/vss-rt-vlm:3.2.1
+  - nvcr.io/nvidia/vss-core/sdr-mw-l:3.2.0
+  - busybox:1.37.0
+  - nvcr.io/nvidia/vss-core/vss-vios-sensor:3.2.1
+  - nvcr.io/nvidia/vss-core/vss-vios-streamprocessing:3.2.1
+  - nvcr.io/nvidia/vss-core/vss-agent:3.2.1
+  - nvcr.io/nvidia/vss-core/vss-behavior-analytics:3.2.1
+  - haproxy:3.0-alpine
+  - nvcr.io/nvidia/vss-core/vss-agent-ui:3.2.0
+  - nvcr.io/nvidia/vss-core/vss-video-analytics-api:3.2.0
+  - nvcr.io/nvidia/vss-core/vss-vios-ingress:3.2.1
+
+# Resolved either with `oc image info --filter-by-os=linux/amd64` from the
+# deployment client or from the immutable imageID of an accepted NVIDIA Search
+# runtime. Registry results use the manifest-list digest when one is present;
+# platform_digest records the selected linux/amd64 manifest. Entries carrying
+# an evidence field are architecture-specific runtime observations.
+image_digest_resolution:
+  date: "2026-09-21"
+  platform: linux/amd64
+  access_status: three-protected-ngc-images-require-service-key-or-additional-entitlement
+  resolved_count: 26
+  unresolved_count: 3
+  resolved:
+    confluentinc/cp-kafka:8.2.0:
+      digest: sha256:acbbf674f2ed40e5d0a8ca51beb0f00692c866fc22b5ce06f8cadbdc54cd4436
+      platform_digest: sha256:e1b1d853560fd5b849eb05bdb21b4b64fab89b7f44c712bbbc26b29f35ed1492
+    ghcr.io/google/cadvisor:0.56.2:
+      digest: sha256:5534ae91cbf3428998d60428d107cfdd97272d80658534ac6e54d8ce3b0c4d72
+      platform_digest: sha256:c34e7a644f573a3b6e7aa61ee67e498516914f326c2d8fd4985d5d25e818b86d
+    postgres:17.9-alpine:
+      digest: sha256:c7526c0f6c3f30260a563d7bcf8ad778effac59a44f8ffa86678c35418338609
+      platform_digest: sha256:e19c5d72436d4d2f54d00c789775095d02a5dfb1c0f7ea5a243230b1bb46c2bb
+    nvidia/dcgm-exporter:3.3.6-3.4.2-ubuntu22.04:
+      digest: sha256:993e1d3535bcd7115cee7ec24fc6e80dde84d6711a827e8a7f7eed5977cd02d2
+      platform_digest: sha256:6cc8ce21e6894063cc13a7e20fa649f38ad8e204692e5df0ef0a1603ccaedd54
+    docker.elastic.co/elasticsearch/elasticsearch:9.3.3:
+      digest: sha256:bff1a79d2502b3a328f90d910727b6b7a4d54846dfc5693338db74d2c7971863
+      platform_digest: sha256:49ee53827c7cf1e6048f9de743878f9f56372617ef98b58168cad1f81dc7d847
+    grafana/grafana:13.0.1-ubuntu:
+      digest: sha256:15baab58cbdcf288c36a20ea9e469fe6c60955e725ddc56060377b27e9eaa47c
+      platform_digest: sha256:20867bfaedbbebda48635893e3a8ef381ca26aa94ecd573787ff5a9e23e24313
+    alpine:3.23.4:
+      digest: sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11
+      platform_digest: sha256:4d889c14e7d5a73929ab00be2ef8ff22437e7cbc545931e52554a7b00e123d8b
+    docker.elastic.co/kibana/kibana:9.3.3:
+      digest: sha256:36301dc49650e47484b23803d60f78e0ac763ab4d7edab6c75c1f54a186d5f9d
+      platform_digest: sha256:b53e9fa4de3b95f5463ed4ba4abf6d33c98ffd7a50a9f29b10b02e4ea27e19fd
+    docker.elastic.co/logstash/logstash:9.3.3:
+      digest: sha256:a7ad817ec23e2f9c41f8fcd09bcce3c87710890f93612d4fd51de45074d7af2e
+      platform_digest: sha256:609e51b1accde023bff27a21c30ab0660475a5c20b2a78ef8239520d4a196adb
+    quay.io/prometheus/node-exporter:v1.11.1:
+      digest: sha256:0f422f62c15f154af8d8572b23d623aebfb10cec73a5c654d18f911f3f9df241
+      platform_digest: sha256:fbd8062b4529e166e902bd62cd93de2f48b36d50af942620d419657265bc20b1
+    arizephoenix/phoenix:14.15.0:
+      digest: sha256:4902edc412785dcd90ad20172c3b15def87d076a18cfc3c3df44df211993f0f0
+      platform_digest: sha256:c130fe248ac3a8a53eec39b82d048980447810c373dc7c282af08561ea1c6f5c
+    quay.io/prometheus/prometheus:v3.11.3:
+      digest: sha256:c0b857aead0d5793aa566adb8f49a9983d6f6031652098759d521a330cfa050f
+      platform_digest: sha256:387d460e3b15ec55d2837fc9275388a4730dbc8c0287926d3f662c5298ce7385
+    redis:8.6.2-alpine:
+      digest: sha256:c5e375abb885e6b2021c0377879e4890bf76f9065b8922ffc113f2b226b9fc17
+      platform_digest: sha256:fa40c1366358040d51a42e40113e78b19dfdd6e0acaae3fa3e9395a173fab2bd
+    busybox:1.37.0:
+      digest: sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0
+      platform_digest: sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0
+    haproxy:3.0-alpine:
+      digest: sha256:30860bc97b3a4b1e48011ce0687d4ba1e4711344af8480c4bec85e3ff8411fee
+      platform_digest: sha256:28c80be7c3a2eda471fb5dbf5add15e0364f9dc178ace024c639d05f4c736ef8
+    nvcr.io/nvidia/vss-core/sdr-mw-l:3.2.0:
+      digest: sha256:49cdff1ffc5314b82e2339ee28c67bd5055dc6f66ea9fa8fcccb0780dc8cd150
+      platform_digest: sha256:49cdff1ffc5314b82e2339ee28c67bd5055dc6f66ea9fa8fcccb0780dc8cd150
+      evidence: accepted-search-runtime-imageID
+    nvcr.io/nvidia/vss-core/vss-agent:3.2.1:
+      digest: sha256:b7f3246aaf355ebf96e91a40b2f0abc5dea7e330e7bf9a7cf726107b560c3ac1
+      platform_digest: sha256:b7f3246aaf355ebf96e91a40b2f0abc5dea7e330e7bf9a7cf726107b560c3ac1
+      evidence: accepted-search-runtime-imageID
+    nvcr.io/nvidia/vss-core/vss-agent-ui:3.2.0:
+      digest: sha256:6362151a839067f517766f1997a19c302296fe80b9b0251aaee8f16b379503d9
+      platform_digest: sha256:6362151a839067f517766f1997a19c302296fe80b9b0251aaee8f16b379503d9
+      evidence: accepted-search-runtime-imageID
+    nvcr.io/nvidia/vss-core/vss-behavior-analytics:3.2.1:
+      digest: sha256:1dfb51a6592a4fe804487309193c651466258f7b6e90d30fcf403f28374552b1
+      platform_digest: sha256:1dfb51a6592a4fe804487309193c651466258f7b6e90d30fcf403f28374552b1
+      evidence: accepted-search-runtime-imageID
+    nvcr.io/nvidia/vss-core/vss-rt-cv:3.2.1:
+      digest: sha256:1a8b9879686f21cb6b9589d6139b5ac2eb960f1520aa3b4bb5f079d05fee9458
+      platform_digest: sha256:1a8b9879686f21cb6b9589d6139b5ac2eb960f1520aa3b4bb5f079d05fee9458
+      evidence: accepted-search-runtime-imageID
+    nvcr.io/nvidia/vss-core/vss-rt-vlm:3.2.1:
+      digest: sha256:5403e0c8fa8b149e7ad15ab1b063b78d610e7a50297dba6ca550ac5cc5ef9504
+      platform_digest: sha256:156bc152242ce38d7913ebb75806b3101e815d93755e371507b1dc5c988746cc
+      evidence: entitled-registry-manifest-query
+    nvcr.io/nvidia/vss-core/vss-video-analytics-api:3.2.0:
+      digest: sha256:2aef26ab5a7394b42da75c53169a9efaf8d2c9278d19de2a214586aafd5e082d
+      platform_digest: sha256:2aef26ab5a7394b42da75c53169a9efaf8d2c9278d19de2a214586aafd5e082d
+      evidence: accepted-search-runtime-imageID
+    nvcr.io/nvidia/vss-core/vss-vios-ingress:3.2.1:
+      digest: sha256:631c25cd970a1bcdb1e2a32cab834959276ea2da97698b310fd9b4c9e9e57d14
+      platform_digest: sha256:631c25cd970a1bcdb1e2a32cab834959276ea2da97698b310fd9b4c9e9e57d14
+      evidence: accepted-search-runtime-imageID
+    nvcr.io/nvidia/vss-core/vss-vios-nvstreamer:3.2.1:
+      digest: sha256:7074784d32f996734ef091405f14965573d40257d843bba29d7ca2ef36f58e4d
+      platform_digest: sha256:7074784d32f996734ef091405f14965573d40257d843bba29d7ca2ef36f58e4d
+      evidence: accepted-search-runtime-imageID
+    nvcr.io/nvidia/vss-core/vss-vios-sensor:3.2.1:
+      digest: sha256:6dd443f43acd52b00c449238907f38a936d8e3f5d7fb77765d4ece82b3c24cc7
+      platform_digest: sha256:6dd443f43acd52b00c449238907f38a936d8e3f5d7fb77765d4ece82b3c24cc7
+      evidence: accepted-search-runtime-imageID
+    nvcr.io/nvidia/vss-core/vss-vios-streamprocessing:3.2.1:
+      digest: sha256:c39392210816ae0f4c41576a6b8b4c2b664c05f7808e25b6fcc95854beffc5c9
+      platform_digest: sha256:c39392210816ae0f4c41576a6b8b4c2b664c05f7808e25b6fcc95854beffc5c9
+      evidence: accepted-search-runtime-imageID
+  unresolved:
+    - nvcr.io/nvidia/vss-core/vss-alert-verification:3.2.0
+    - nvcr.io/nvidia/vss-core/vss-configurator:3.2.1
+    - nvcr.io/nim/nvidia/nvidia-nemotron-nano-9b-v2:1
+
+core_configuration_hashes:
+  warehouse_environment: 0c6242fb720e34a4d112ed80c26b75f1cb163c1b738a8b91835e1f1a16770857
+  calibration: 37127a068d8a6775ab1a12cffa2634c477e6bc44f0833d7d918b3569fd64e1e0
+  behavior_analytics: 8424ac5a6f1ce041716bf00f057514a306f684ad93d938cbfdc7b82638b3e887
+  alert_verification: d7fd8c3b744a749f589759e18c5d0037a520e8b443e49997cdf6302067b97e85
+  realtime_alerts: d4413303c99da27a5aa2781d01e46fb28c05c45e54b4b155cdf8e55f26b40aca
+  agent_config: 0d922090a1ebcf6f4ab6d1d16378dae9be67afc7a82e63d532d662bdb3ee4bd6
+
+blocking_items:
+  - Resolve the three remaining registry tags and every local derived build output to an immutable digest.
+  - Validate the proposed missing RTVI_VLM_PORT value of 8018.
+  - Resolve OpenShift co-location for NvStreamer and RT-CV on Compose device 0.
+  - Determine GPU requirements for VIOS sensor and stream-processing services.
+  - Replace host networking, host paths, Docker socket access, and mutable source mounts.
+  - Build and publish the four local init images and local Elasticsearch image.
+  - Pin jq and the Logstash protobuf codec fetched during builds or startup.
+  - Reconcile referenced Kafka topics that are absent from the 21-topic init job.
+  - Add and validate OpenShift probes for services without upstream health checks.
+
+evidence:
+  human_readable_inventory: ../../research/NVIDIA-SOURCE-INVENTORY.md
+  protected_ngc_resolution: ../../research/NGC-IMAGE-RESOLUTION.md
+  openshift_porting_matrix: ../../research/OPENSHIFT-PORTING-MATRIX.md
+  alert_scenario_matrix: ../../data/ALERT-SCENARIO-MATRIX.md

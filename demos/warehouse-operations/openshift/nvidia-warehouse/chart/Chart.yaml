@@ -1,0 +1,10 @@
+apiVersion: v2
+name: nvidia-warehouse-openshift-skeleton
+description: Render-only OpenShift skeleton for the NVIDIA VSS 3.2.1 Warehouse profile
+type: application
+version: 0.2.0
+appVersion: "3.2.1"
+annotations:
+  warehouse.nvidia.com/status: render-only-incomplete
+  warehouse.nvidia.com/source-tag: v3.2.1
+  warehouse.nvidia.com/source-commit: 7640d917047cf7b0fd3085eefb8282754b56bc94

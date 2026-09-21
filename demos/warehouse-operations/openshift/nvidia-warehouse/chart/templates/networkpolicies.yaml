@@ -1,0 +1,103 @@
+{{- include "nvidia-warehouse.assertSafety" . -}}
+{{- if and .Values.global.enabled .Values.networkPolicies.enabled }}
+{{- if not .Values.networkPolicies.acknowledgeIncomplete }}
+{{- fail "networkPolicies.enabled=true requires networkPolicies.acknowledgeIncomplete=true; application flows are not yet runtime-validated" }}
+{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nvidia-warehouse.componentName" (dict "root" . "name" "default-deny") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "nvidia-warehouse.labels" (dict "root" . "component" "network-policy") | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "nvidia-warehouse.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes: [Ingress, Egress]
+{{- if .Values.networkPolicies.allowSameRelease }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nvidia-warehouse.componentName" (dict "root" . "name" "allow-same-release") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "nvidia-warehouse.labels" (dict "root" . "component" "network-policy") | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "nvidia-warehouse.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ include "nvidia-warehouse.name" . }}
+              app.kubernetes.io/instance: {{ .Release.Name }}
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ include "nvidia-warehouse.name" . }}
+              app.kubernetes.io/instance: {{ .Release.Name }}
+{{- end }}
+{{- if .Values.networkPolicies.dns.enabled }}
+{{- if eq (len .Values.networkPolicies.dns.namespaceSelector) 0 }}{{ fail "networkPolicies.dns.namespaceSelector is required" }}{{- end }}
+{{- if eq (len .Values.networkPolicies.dns.podSelector) 0 }}{{ fail "networkPolicies.dns.podSelector is required" }}{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nvidia-warehouse.componentName" (dict "root" . "name" "allow-dns") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "nvidia-warehouse.labels" (dict "root" . "component" "network-policy") | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "nvidia-warehouse.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              {{- toYaml .Values.networkPolicies.dns.namespaceSelector | nindent 14 }}
+          podSelector:
+            matchLabels:
+              {{- toYaml .Values.networkPolicies.dns.podSelector | nindent 14 }}
+      ports:
+        - {protocol: UDP, port: 53}
+        - {protocol: TCP, port: 53}
+{{- end }}
+{{- if .Values.networkPolicies.routerIngress.enabled }}
+{{- if eq (len .Values.networkPolicies.routerIngress.namespaceSelector) 0 }}{{ fail "networkPolicies.routerIngress.namespaceSelector is required" }}{{- end }}
+{{- if eq (len .Values.networkPolicies.routerIngress.podSelector) 0 }}{{ fail "networkPolicies.routerIngress.podSelector is required" }}{{- end }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nvidia-warehouse.componentName" (dict "root" . "name" "allow-router") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "nvidia-warehouse.labels" (dict "root" . "component" "network-policy") | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "nvidia-warehouse.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              {{- toYaml .Values.networkPolicies.routerIngress.namespaceSelector | nindent 14 }}
+          podSelector:
+            matchLabels:
+              {{- toYaml .Values.networkPolicies.routerIngress.podSelector | nindent 14 }}
+{{- end }}
+{{- end }}

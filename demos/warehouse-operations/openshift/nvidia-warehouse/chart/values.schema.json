@@ -1,0 +1,407 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "global",
+    "nameOverride",
+    "fullnameOverride",
+    "serviceAccounts",
+    "rbac",
+    "scheduling",
+    "security",
+    "images",
+    "secretReferences",
+    "configMaps",
+    "persistentVolumeClaims",
+    "initializationJobs",
+    "routes",
+    "networkPolicies",
+    "statefulServices",
+    "cpuServices",
+    "gpuWorkloads"
+  ],
+  "properties": {
+    "global": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "acknowledgeIncomplete", "allowGpuPlaceholders", "allowTagOnlyRender", "source", "imagePullSecrets", "storageClass"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "acknowledgeIncomplete": {"type": "boolean"},
+        "allowGpuPlaceholders": {"type": "boolean"},
+        "allowTagOnlyRender": {"type": "boolean"},
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tag", "commit", "releaseMetadata"],
+          "properties": {
+            "tag": {"enum": ["v3.2.1"]},
+            "commit": {"enum": ["7640d917047cf7b0fd3085eefb8282754b56bc94"]},
+            "releaseMetadata": {"enum": ["3.2.1-26.07.1"]}
+          }
+        },
+        "imagePullSecrets": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name"],
+            "properties": {"name": {"type": "string", "minLength": 1}}
+          }
+        },
+        "storageClass": {"type": "string"}
+      }
+    },
+    "nameOverride": {"type": "string"},
+    "fullnameOverride": {"type": "string", "minLength": 1},
+    "serviceAccounts": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/definitions/serviceAccount"}
+    },
+    "rbac": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["sdrcReadOnly"],
+      "properties": {
+        "sdrcReadOnly": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled"],
+          "properties": {"enabled": {"type": "boolean"}}
+        }
+      }
+    },
+    "scheduling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cpu", "gpu"],
+      "properties": {
+        "cpu": {"$ref": "#/definitions/scheduling"},
+        "gpu": {"$ref": "#/definitions/scheduling"}
+      }
+    },
+    "security": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pod", "container"],
+      "properties": {
+        "pod": {"type": "object"},
+        "container": {"type": "object"}
+      }
+    },
+    "images": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"$ref": "#/definitions/image"}
+    },
+    "secretReferences": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/definitions/secretReference"}
+    },
+    "configMaps": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/definitions/configMap"}
+    },
+    "persistentVolumeClaims": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/definitions/persistentVolumeClaim"}
+    },
+    "initializationJobs": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/definitions/initializationJob"}
+    },
+    "routes": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/definitions/route"}
+    },
+    "networkPolicies": {"$ref": "#/definitions/networkPolicies"},
+    "statefulServices": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/definitions/statefulService"}
+    },
+    "cpuServices": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/definitions/cpuService"}
+    },
+    "gpuWorkloads": {
+      "type": "object",
+      "additionalProperties": {"$ref": "#/definitions/gpuWorkload"}
+    }
+  },
+  "definitions": {
+    "serviceAccount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["create", "name"],
+      "properties": {
+        "create": {"type": "boolean"},
+        "name": {"type": "string", "minLength": 1}
+      }
+    },
+    "scheduling": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["nodeSelector", "tolerations", "affinity"],
+      "properties": {
+        "nodeSelector": {"type": "object"},
+        "tolerations": {"type": "array"},
+        "affinity": {"type": "object"}
+      }
+    },
+    "image": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "tag", "digest", "pullPolicy"],
+      "properties": {
+        "repository": {"type": "string", "minLength": 1},
+        "tag": {"type": ["string", "number"], "not": {"enum": ["latest"]}},
+        "digest": {"type": "string", "pattern": "^$|^sha256:[a-f0-9]{64}$"},
+        "pullPolicy": {"enum": ["Always", "IfNotPresent", "Never"]}
+      }
+    },
+    "secretReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "key"],
+      "properties": {
+        "name": {"type": "string"},
+        "key": {"type": "string", "minLength": 1}
+      }
+    },
+    "secretEnv": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "secret"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "secret": {"type": "string", "minLength": 1}
+      }
+    },
+    "configMap": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "immutable", "sourceFiles", "data"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "immutable": {"type": "boolean"},
+        "sourceFiles": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "data": {
+          "type": "object",
+          "additionalProperties": {"type": "string"}
+        }
+      }
+    },
+    "configMapMount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["configMap", "mountPath", "readOnly"],
+      "properties": {
+        "configMap": {"type": "string", "minLength": 1},
+        "mountPath": {"type": "string", "pattern": "^/"},
+        "readOnly": {"type": "boolean"}
+      }
+    },
+    "claimMount": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["claim", "mountPath", "readOnly"],
+      "properties": {
+        "claim": {"type": "string", "minLength": 1},
+        "mountPath": {"type": "string", "pattern": "^/"},
+        "readOnly": {"type": "boolean"}
+      }
+    },
+    "persistentVolumeClaim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "keep", "storageClass", "size", "accessModes", "status"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "keep": {"type": "boolean"},
+        "storageClass": {"type": "string", "minLength": 1},
+        "size": {"type": "string", "minLength": 1},
+        "accessModes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"]}
+        },
+        "status": {"type": "string", "minLength": 1}
+      }
+    },
+    "initializationJob": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "implementationStatus", "image", "serviceAccount", "command", "args", "configMapMounts", "secretEnv", "backoffLimit", "activeDeadlineSeconds"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "implementationStatus": {"type": "string", "minLength": 1},
+        "image": {"type": "string"},
+        "serviceAccount": {"type": "string", "minLength": 1},
+        "command": {"type": "array", "items": {"type": "string"}},
+        "args": {"type": "array", "items": {"type": "string"}},
+        "configMapMounts": {"type": "array", "items": {"$ref": "#/definitions/configMapMount"}},
+        "secretEnv": {"type": "array", "items": {"$ref": "#/definitions/secretEnv"}},
+        "backoffLimit": {"type": "integer", "minimum": 0},
+        "activeDeadlineSeconds": {"type": "integer", "minimum": 1}
+      }
+    },
+    "route": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "host", "path", "service", "port", "timeout"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "host": {"type": "string"},
+        "path": {"type": "string", "pattern": "^/"},
+        "service": {"type": "string", "minLength": 1},
+        "port": {"type": "string", "minLength": 1},
+        "timeout": {"type": "string"}
+      }
+    },
+    "networkPolicyPeer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "namespaceSelector", "podSelector"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "namespaceSelector": {"type": "object"},
+        "podSelector": {"type": "object"}
+      }
+    },
+    "networkPolicies": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "acknowledgeIncomplete", "allowSameRelease", "dns", "routerIngress"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "acknowledgeIncomplete": {"type": "boolean"},
+        "allowSameRelease": {"type": "boolean"},
+        "dns": {"$ref": "#/definitions/networkPolicyPeer"},
+        "routerIngress": {"$ref": "#/definitions/networkPolicyPeer"}
+      }
+    },
+    "port": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "port", "protocol"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1, "maxLength": 15},
+        "port": {"type": "integer", "minimum": 1, "maximum": 65535},
+        "protocol": {"enum": ["TCP", "UDP", "SCTP"]}
+      }
+    },
+    "probe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "type", "port", "path", "startupFailureThreshold", "periodSeconds"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "type": {"enum": ["http", "tcp"]},
+        "port": {"type": ["string", "integer"]},
+        "path": {"type": "string"},
+        "startupFailureThreshold": {"type": "integer", "minimum": 1},
+        "periodSeconds": {"type": "integer", "minimum": 1}
+      }
+    },
+    "claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "mountPath", "size", "accessModes"],
+      "properties": {
+        "name": {"type": "string", "minLength": 1},
+        "mountPath": {"type": "string", "pattern": "^/"},
+        "size": {"type": "string", "minLength": 1},
+        "accessModes": {
+          "type": "array",
+          "minItems": 1,
+          "items": {"enum": ["ReadWriteOnce", "ReadOnlyMany", "ReadWriteMany", "ReadWriteOncePod"]}
+        }
+      }
+    },
+    "statefulService": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "image", "serviceAccount", "replicas", "headless", "ports", "probe", "env", "claims", "resources"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "image": {"type": "string", "minLength": 1},
+        "serviceAccount": {"type": "string", "minLength": 1},
+        "replicas": {"type": "integer", "minimum": 0},
+        "headless": {"type": "boolean"},
+        "ports": {"type": "array", "minItems": 1, "items": {"$ref": "#/definitions/port"}},
+        "probe": {"$ref": "#/definitions/probe"},
+        "env": {"type": "object"},
+        "configMapMounts": {"type": "array", "items": {"$ref": "#/definitions/configMapMount"}},
+        "secretEnv": {"type": "array", "items": {"$ref": "#/definitions/secretEnv"}},
+        "claims": {"type": "array", "items": {"$ref": "#/definitions/claim"}},
+        "resources": {"type": "object"}
+      }
+    },
+    "service": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "type"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "type": {"enum": ["ClusterIP", "NodePort", "LoadBalancer"]}
+      }
+    },
+    "cpuService": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "image", "serviceAccount", "replicas", "ports", "service", "probe", "env", "resources"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "image": {"type": "string", "minLength": 1},
+        "serviceAccount": {"type": "string", "minLength": 1},
+        "replicas": {"type": "integer", "minimum": 0},
+        "ports": {"type": "array", "items": {"$ref": "#/definitions/port"}},
+        "service": {"$ref": "#/definitions/service"},
+        "probe": {"$ref": "#/definitions/probe"},
+        "env": {"type": "object"},
+        "configMapMounts": {"type": "array", "items": {"$ref": "#/definitions/configMapMount"}},
+        "claimMounts": {"type": "array", "items": {"$ref": "#/definitions/claimMount"}},
+        "secretEnv": {"type": "array", "items": {"$ref": "#/definitions/secretEnv"}},
+        "resources": {"type": "object"}
+      }
+    },
+    "sharedMemory": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "sizeLimit"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "sizeLimit": {"type": "string", "minLength": 1}
+      }
+    },
+    "gpuWorkload": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "kind", "image", "serviceAccount", "standbyReplicas", "activeReplicas", "ports", "headless", "gpuCount", "allocationStatus", "probe", "configMapMounts", "claimMounts", "secretEnv", "sharedMemory", "resources"],
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "kind": {"enum": ["Deployment", "StatefulSet"]},
+        "image": {"type": "string", "minLength": 1},
+        "serviceAccount": {"type": "string", "minLength": 1},
+        "standbyReplicas": {"enum": [0]},
+        "activeReplicas": {"type": "integer", "minimum": 1},
+        "ports": {"type": "array", "minItems": 1, "items": {"$ref": "#/definitions/port"}},
+        "headless": {"type": "boolean"},
+        "gpuCount": {"type": "integer", "minimum": 0, "maximum": 8},
+        "allocationStatus": {"type": "string", "minLength": 1},
+        "probe": {"$ref": "#/definitions/probe"},
+        "configMapMounts": {"type": "array", "items": {"$ref": "#/definitions/configMapMount"}},
+        "claimMounts": {"type": "array", "items": {"$ref": "#/definitions/claimMount"}},
+        "secretEnv": {"type": "array", "items": {"$ref": "#/definitions/secretEnv"}},
+        "sharedMemory": {"$ref": "#/definitions/sharedMemory"},
+        "resources": {"type": "object"}
+      }
+    }
+  }
+}
