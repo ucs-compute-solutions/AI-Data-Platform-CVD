@@ -1,0 +1,29 @@
+{{- include "nvidia-warehouse.assertSafety" . -}}
+{{- if .Values.global.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nvidia-warehouse.componentName" (dict "root" . "name" "source-lock") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "nvidia-warehouse.labels" (dict "root" . "component" "source-lock") | nindent 4 }}
+data:
+  SOURCE_STATUS: render-only-incomplete
+  SOURCE_TAG: {{ .Values.global.source.tag | quote }}
+  SOURCE_COMMIT: {{ .Values.global.source.commit | quote }}
+  RELEASE_METADATA: {{ .Values.global.source.releaseMetadata | quote }}
+  KAFKA_BOOTSTRAP: warehouse-kafka:9092
+  REDIS_URL: redis://warehouse-redis:6379
+  ELASTICSEARCH_URL: http://warehouse-elasticsearch:9200
+  POSTGRES_HOST: warehouse-vios-postgres
+  CONFIGURATOR_URL: http://warehouse-configurator:5001
+  RTVI_VLM_URL: http://warehouse-rtvi-vlm:8000
+  AGENT_URL: http://warehouse-agent:8000
+  VA_MCP_URL: http://warehouse-va-mcp:9901
+  ALERT_BRIDGE_URL: http://warehouse-alert-bridge:9080
+  VIOS_INGRESS_URL: http://warehouse-vios-ingress:30888
+  VIOS_SENSOR_HOST: warehouse-vios-sensor:30000
+  VIOS_STREAMPROCESSING_HOST: warehouse-vios-streamprocessing:30001
+  NVSTREAMER_URL: http://warehouse-nvstreamer:31000
+  PHOENIX_URL: http://warehouse-phoenix:6006
+{{- end }}

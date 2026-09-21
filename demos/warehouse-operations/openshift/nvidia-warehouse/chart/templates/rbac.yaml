@@ -1,0 +1,33 @@
+{{- include "nvidia-warehouse.assertSafety" . -}}
+{{- if and .Values.global.enabled .Values.rbac.sdrcReadOnly.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "nvidia-warehouse.componentName" (dict "root" . "name" "sdrc-observer") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "nvidia-warehouse.labels" (dict "root" . "component" "sdrc") | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "nvidia-warehouse.componentName" (dict "root" . "name" "sdrc-observer") }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "nvidia-warehouse.labels" (dict "root" . "component" "sdrc") | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "nvidia-warehouse.componentName" (dict "root" . "name" "sdrc-observer") }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "nvidia-warehouse.serviceAccountName" (dict "root" . "key" "sdrc") }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

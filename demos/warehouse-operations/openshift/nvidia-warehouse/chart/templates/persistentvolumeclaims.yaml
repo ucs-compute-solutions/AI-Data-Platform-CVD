@@ -1,0 +1,27 @@
+{{- include "nvidia-warehouse.assertSafety" . -}}
+{{- if .Values.global.enabled }}
+{{- range $key, $claim := .Values.persistentVolumeClaims }}
+{{- if $claim.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "nvidia-warehouse.componentName" (dict "root" $ "name" $key) }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "nvidia-warehouse.labels" (dict "root" $ "component" $key) | nindent 4 }}
+  annotations:
+    warehouse.nvidia.com/capacity-status: {{ $claim.status | quote }}
+    {{- if $claim.keep }}
+    helm.sh/resource-policy: keep
+    {{- end }}
+spec:
+  accessModes:
+    {{- toYaml $claim.accessModes | nindent 4 }}
+  storageClassName: {{ required (printf "persistentVolumeClaims.%s.storageClass is required" $key) $claim.storageClass | quote }}
+  resources:
+    requests:
+      storage: {{ required (printf "persistentVolumeClaims.%s.size is required" $key) $claim.size }}
+{{- end }}
+{{- end }}
+{{- end }}

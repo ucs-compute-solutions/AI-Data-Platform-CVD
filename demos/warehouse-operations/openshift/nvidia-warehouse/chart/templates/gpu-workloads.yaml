@@ -1,0 +1,174 @@
+{{- include "nvidia-warehouse.assertSafety" . -}}
+{{- if .Values.global.enabled }}
+{{- range $key, $component := .Values.gpuWorkloads }}
+{{- if $component.enabled }}
+{{- if not $.Values.global.allowGpuPlaceholders }}
+{{- fail (printf "gpuWorkloads.%s.enabled=true requires global.allowGpuPlaceholders=true" $key) }}
+{{- end }}
+{{- $name := include "nvidia-warehouse.componentName" (dict "root" $ "name" $key) }}
+{{- $image := index $.Values.images $component.image }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "nvidia-warehouse.labels" (dict "root" $ "component" $key) | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "nvidia-warehouse.selectorLabels" (dict "root" $ "component" $key) | nindent 4 }}
+  ports:
+    {{- range $component.ports }}
+    - name: {{ .name }}
+      port: {{ .port }}
+      targetPort: {{ .name }}
+      protocol: {{ .protocol }}
+    {{- end }}
+{{- if $component.headless }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}-headless
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "nvidia-warehouse.labels" (dict "root" $ "component" $key) | nindent 4 }}
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    {{- include "nvidia-warehouse.selectorLabels" (dict "root" $ "component" $key) | nindent 4 }}
+  ports:
+    {{- range $component.ports }}
+    - name: {{ .name }}
+      port: {{ .port }}
+      targetPort: {{ .name }}
+      protocol: {{ .protocol }}
+    {{- end }}
+{{- end }}
+---
+apiVersion: apps/v1
+kind: {{ $component.kind }}
+metadata:
+  name: {{ $name }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "nvidia-warehouse.labels" (dict "root" $ "component" $key) | nindent 4 }}
+  annotations:
+    warehouse.nvidia.com/gpu-allocation-status: {{ $component.allocationStatus | quote }}
+    warehouse.nvidia.com/active-replicas: {{ $component.activeReplicas | quote }}
+spec:
+  {{- if eq $component.kind "StatefulSet" }}
+  serviceName: {{ ternary (printf "%s-headless" $name) $name $component.headless }}
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  {{- end }}
+  replicas: {{ $component.standbyReplicas }}
+  selector:
+    matchLabels:
+      {{- include "nvidia-warehouse.selectorLabels" (dict "root" $ "component" $key) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "nvidia-warehouse.selectorLabels" (dict "root" $ "component" $key) | nindent 8 }}
+      annotations:
+        warehouse.nvidia.com/design-status: gpu-placeholder-disabled-by-default
+        warehouse.nvidia.com/gpu-allocation-status: {{ $component.allocationStatus | quote }}
+    spec:
+      serviceAccountName: {{ include "nvidia-warehouse.serviceAccountName" (dict "root" $ "key" $component.serviceAccount) }}
+      securityContext:
+        {{- toYaml $.Values.security.pod | nindent 8 }}
+      {{- with $.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: {{ $key | kebabcase }}
+          image: {{ include "nvidia-warehouse.image" (dict "root" $ "image" $image) }}
+          imagePullPolicy: {{ $image.pullPolicy }}
+          securityContext:
+            {{- toYaml $.Values.security.container | nindent 12 }}
+          ports:
+            {{- range $component.ports }}
+            - name: {{ .name }}
+              containerPort: {{ .port }}
+              protocol: {{ .protocol }}
+            {{- end }}
+          {{- with $component.secretEnv }}
+          env:
+            {{- range $secretEnv := . }}
+            {{- $secret := index $.Values.secretReferences $secretEnv.secret }}
+            {{- if not $secret }}{{ fail (printf "gpuWorkloads.%s references unknown secretReferences.%s" $key $secretEnv.secret) }}{{- end }}
+            - name: {{ $secretEnv.name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ required (printf "secretReferences.%s.name is required" $secretEnv.secret) $secret.name }}
+                  key: {{ required (printf "secretReferences.%s.key is required" $secretEnv.secret) $secret.key }}
+            {{- end }}
+          {{- end }}
+          {{- if $component.probe.enabled }}
+          startupProbe:
+            {{- include "nvidia-warehouse.probeAction" (dict "probe" $component.probe) | nindent 12 }}
+            failureThreshold: {{ $component.probe.startupFailureThreshold }}
+            periodSeconds: {{ $component.probe.periodSeconds }}
+          readinessProbe:
+            {{- include "nvidia-warehouse.probeAction" (dict "probe" $component.probe) | nindent 12 }}
+            failureThreshold: 3
+            periodSeconds: {{ $component.probe.periodSeconds }}
+          {{- end }}
+          resources:
+            {{- toYaml $component.resources | nindent 12 }}
+          {{- if or $component.sharedMemory.enabled $component.configMapMounts $component.claimMounts }}
+          volumeMounts:
+            {{- range $mount := $component.configMapMounts }}
+            {{- $config := index $.Values.configMaps $mount.configMap }}
+            {{- if not $config }}{{ fail (printf "gpuWorkloads.%s references unknown configMaps.%s" $key $mount.configMap) }}{{- end }}
+            {{- if not $config.enabled }}{{ fail (printf "gpuWorkloads.%s requires configMaps.%s.enabled=true" $key $mount.configMap) }}{{- end }}
+            - name: {{ printf "config-%s" ($mount.configMap | kebabcase) | trunc 63 | trimSuffix "-" }}
+              mountPath: {{ $mount.mountPath }}
+              readOnly: {{ $mount.readOnly }}
+            {{- end }}
+            {{- range $mount := $component.claimMounts }}
+            {{- $claim := index $.Values.persistentVolumeClaims $mount.claim }}
+            {{- if not $claim }}{{ fail (printf "gpuWorkloads.%s references unknown persistentVolumeClaims.%s" $key $mount.claim) }}{{- end }}
+            {{- if not $claim.enabled }}{{ fail (printf "gpuWorkloads.%s requires persistentVolumeClaims.%s.enabled=true" $key $mount.claim) }}{{- end }}
+            - name: {{ printf "claim-%s" ($mount.claim | kebabcase) | trunc 63 | trimSuffix "-" }}
+              mountPath: {{ $mount.mountPath }}
+              readOnly: {{ $mount.readOnly }}
+            {{- end }}
+            {{- if $component.sharedMemory.enabled }}
+            - name: shared-memory
+              mountPath: /dev/shm
+            {{- end }}
+          {{- end }}
+      {{- if or $component.sharedMemory.enabled $component.configMapMounts $component.claimMounts }}
+      volumes:
+        {{- range $mount := $component.configMapMounts }}
+        - name: {{ printf "config-%s" ($mount.configMap | kebabcase) | trunc 63 | trimSuffix "-" }}
+          configMap:
+            name: {{ include "nvidia-warehouse.componentName" (dict "root" $ "name" $mount.configMap) }}
+        {{- end }}
+        {{- range $mount := $component.claimMounts }}
+        - name: {{ printf "claim-%s" ($mount.claim | kebabcase) | trunc 63 | trimSuffix "-" }}
+          persistentVolumeClaim:
+            claimName: {{ include "nvidia-warehouse.componentName" (dict "root" $ "name" $mount.claim) }}
+        {{- end }}
+        {{- if $component.sharedMemory.enabled }}
+        - name: shared-memory
+          emptyDir:
+            medium: Memory
+            sizeLimit: {{ $component.sharedMemory.sizeLimit }}
+        {{- end }}
+      {{- end }}
+      nodeSelector:
+        {{- toYaml $.Values.scheduling.gpu.nodeSelector | nindent 8 }}
+      tolerations:
+        {{- toYaml $.Values.scheduling.gpu.tolerations | nindent 8 }}
+      affinity:
+        {{- toYaml $.Values.scheduling.gpu.affinity | nindent 8 }}
+{{- end }}
+{{- end }}
+{{- end }}

@@ -19,6 +19,11 @@ overlays; it does not include the NVIDIA VSS source tree, container images,
 models, or sample datasets. Obtain those artifacts from NVIDIA and comply with
 the applicable NVIDIA licenses and entitlements.
 
+The Warehouse Operations implementation starter references NVIDIA VSS
+Warehouse application data and protected NGC container images. Neither the
+dataset nor the images are redistributed. Obtain them directly from NVIDIA
+using an appropriately entitled NGC organization and service key.
+
 ## VAST VSS Blueprint
 
 The VAST-native VSS companion targets the following upstream source:
@@ -29,8 +34,6 @@ The VAST-native VSS companion targets the following upstream source:
 This repository contains reviewed patch files and dependency lock data used
 with a separately obtained checkout; it does not include the complete VAST
 source tree. The source lock and patches do not replace the upstream terms.
-Confirm the applicable redistribution and attribution terms with VAST before
-changing this repository to public visibility.
 
 ## Package and model dependencies
 

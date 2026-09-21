@@ -1,0 +1,23 @@
+{{- include "nvidia-warehouse.assertSafety" . -}}
+{{- if .Values.global.enabled }}
+{{- range $key, $config := .Values.configMaps }}
+{{- if $config.enabled }}
+{{- if eq (len $config.data) 0 }}
+{{- fail (printf "configMaps.%s.enabled=true requires reviewed data copied from the pinned source" $key) }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "nvidia-warehouse.componentName" (dict "root" $ "name" $key) }}
+  namespace: {{ $.Release.Namespace }}
+  labels:
+    {{- include "nvidia-warehouse.labels" (dict "root" $ "component" $key) | nindent 4 }}
+  annotations:
+    warehouse.nvidia.com/source-files: {{ join "," $config.sourceFiles | quote }}
+immutable: {{ $config.immutable }}
+data:
+  {{- toYaml $config.data | nindent 2 }}
+{{- end }}
+{{- end }}
+{{- end }}
