@@ -1,7 +1,7 @@
 # NVIDIA Warehouse `bp_wh` Configuration Inventory
 
 Status: **source-locked inventory; not a deployment manifest**
-Inventory date: 2026-09-21
+Inventory date: 2026-09-22
 
 This document closes the component and initialization inventory needed before
 the NVIDIA VSS 3.2.1 Warehouse Operations profile can be rendered for
@@ -19,7 +19,7 @@ OpenShift. It does not authorize a deployment or a GPU-mode switch.
 | Hardware override | `HARDWARE_PROFILE=RTXPRO6000BW` |
 | Local upstream checkout | None present in this repository or the inspected local source locations |
 | Local source authority | [`NVIDIA-SOURCE-INVENTORY.md`](NVIDIA-SOURCE-INVENTORY.md) and [`source-lock.yaml`](../openshift/nvidia-warehouse/source-lock.yaml) |
-| Runtime digest evidence | Read-only `imageID` inventory from the accepted NVIDIA Search namespace on 2026-09-21 |
+| Runtime digest evidence | Accepted Search `imageID` inventory from 2026-09-21 and authenticated registry manifests from 2026-09-22 |
 
 The resolved profile contains **40 Compose services**: 28 long-running
 services and 12 one-shot or initialization services. The 3.2.1 release
@@ -232,11 +232,10 @@ optional.
 
 ## Immutable image evidence
 
-The following tag-to-digest pairs were observed as running `imageID` values in
-the accepted NVIDIA Search namespace on 2026-09-21. They are valid existing
-evidence for the x86_64 image pulled by the cluster. Before reuse, the
-Warehouse render must retain the exact repository and tag shown and should
-confirm the registry still resolves the tag to the same digest.
+The following tag-to-digest pairs combine accepted NVIDIA Search runtime
+`imageID` evidence from September 21, 2026 with authenticated registry manifest
+evidence from September 22, 2026. The Warehouse render retains the exact
+repository and tag and pins the corresponding immutable manifest digest.
 
 | Warehouse source image | Observed immutable image |
 |---|---|
@@ -247,16 +246,20 @@ confirm the registry still resolves the tag to the same digest.
 | `docker.elastic.co/logstash/logstash:9.3.3` | `docker.elastic.co/logstash/logstash@sha256:609e51b1accde023bff27a21c30ab0660475a5c20b2a78ef8239520d4a196adb` |
 | `redis:8.6.2-alpine` | `docker.io/library/redis@sha256:c5e375abb885e6b2021c0377879e4890bf76f9065b8922ffc113f2b226b9fc17` |
 | `arizephoenix/phoenix:14.15.0` | `docker.io/arizephoenix/phoenix@sha256:4902edc412785dcd90ad20172c3b15def87d076a18cfc3c3df44df211993f0f0` |
+| `nvcr.io/nvidia/vss-core/vss-alert-verification:3.2.0` | `nvcr.io/nvidia/vss-core/vss-alert-verification@sha256:a36745d216ca2396acb2491c75f3af05884e207e782c445e76b06df4976aa275` |
+| `nvcr.io/nvidia/vss-core/vss-configurator:3.2.1` | `nvcr.io/nvidia/vss-core/vss-configurator@sha256:35e3e31e7d9e62b298d6dbcb91244d54b0686845227f26e46f886493e9fe4504` |
 | `nvcr.io/nvidia/vss-core/sdr-mw-l:3.2.0` | `nvcr.io/nvidia/vss-core/sdr-mw-l@sha256:49cdff1ffc5314b82e2339ee28c67bd5055dc6f66ea9fa8fcccb0780dc8cd150` |
 | `nvcr.io/nvidia/vss-core/vss-agent:3.2.1` | `nvcr.io/nvidia/vss-core/vss-agent@sha256:b7f3246aaf355ebf96e91a40b2f0abc5dea7e330e7bf9a7cf726107b560c3ac1` |
 | `nvcr.io/nvidia/vss-core/vss-agent-ui:3.2.0` | `nvcr.io/nvidia/vss-core/vss-agent-ui@sha256:6362151a839067f517766f1997a19c302296fe80b9b0251aaee8f16b379503d9` |
 | `nvcr.io/nvidia/vss-core/vss-behavior-analytics:3.2.1` | `nvcr.io/nvidia/vss-core/vss-behavior-analytics@sha256:1dfb51a6592a4fe804487309193c651466258f7b6e90d30fcf403f28374552b1` |
 | `nvcr.io/nvidia/vss-core/vss-rt-cv:3.2.1` | `nvcr.io/nvidia/vss-core/vss-rt-cv@sha256:1a8b9879686f21cb6b9589d6139b5ac2eb960f1520aa3b4bb5f079d05fee9458` |
+| `nvcr.io/nvidia/vss-core/vss-rt-vlm:3.2.1` | `nvcr.io/nvidia/vss-core/vss-rt-vlm@sha256:5403e0c8fa8b149e7ad15ab1b063b78d610e7a50297dba6ca550ac5cc5ef9504` |
 | `nvcr.io/nvidia/vss-core/vss-video-analytics-api:3.2.0` | `nvcr.io/nvidia/vss-core/vss-video-analytics-api@sha256:2aef26ab5a7394b42da75c53169a9efaf8d2c9278d19de2a214586aafd5e082d` |
 | `nvcr.io/nvidia/vss-core/vss-vios-ingress:3.2.1` | `nvcr.io/nvidia/vss-core/vss-vios-ingress@sha256:631c25cd970a1bcdb1e2a32cab834959276ea2da97698b310fd9b4c9e9e57d14` |
 | `nvcr.io/nvidia/vss-core/vss-vios-nvstreamer:3.2.1` | `nvcr.io/nvidia/vss-core/vss-vios-nvstreamer@sha256:7074784d32f996734ef091405f14965573d40257d843bba29d7ca2ef36f58e4d` |
 | `nvcr.io/nvidia/vss-core/vss-vios-sensor:3.2.1` | `nvcr.io/nvidia/vss-core/vss-vios-sensor@sha256:6dd443f43acd52b00c449238907f38a936d8e3f5d7fb77765d4ece82b3c24cc7` |
 | `nvcr.io/nvidia/vss-core/vss-vios-streamprocessing:3.2.1` | `nvcr.io/nvidia/vss-core/vss-vios-streamprocessing@sha256:c39392210816ae0f4c41576a6b8b4c2b664c05f7808e25b6fcc95854beffc5c9` |
+| `nvcr.io/nim/nvidia/nvidia-nemotron-nano-9b-v2:1` | `nvcr.io/nim/nvidia/nvidia-nemotron-nano-9b-v2@sha256:a2f4a5aefe7dd0ff29bfd8d7081ce4977337d1b12081361af7b6283ff9a406b2` |
 
 ### Important digest limits
 
@@ -270,24 +273,20 @@ confirm the registry still resolves the tag to the same digest.
 - A running `imageID` is architecture-specific evidence from the accepted
   cluster, not a vendor support statement or a multi-architecture index lock.
 
-These deployable Warehouse images remain unresolved from existing evidence:
+These locally built Warehouse images remain unresolved from existing evidence:
 
-- `nvcr.io/nvidia/vss-core/vss-alert-verification:3.2.0`
-- `nvcr.io/nvidia/vss-core/vss-configurator:3.2.1`
-- `nvcr.io/nim/nvidia/nvidia-nemotron-nano-9b-v2:1`
 - the derived Elasticsearch image
 - the four derived helper/init images
 
-The three unresolved NVIDIA tags above are exact references in the pinned
-`v3.2.1` source. An authenticated personal-key check required a service key
-for Alert Verification and Configurator and could not access Nemotron Nano;
-no matching running `imageID` exists in the current cluster. RTVI-VLM resolved
-successfully and is now locked. Per-image evidence, access requirements, and
-the temporary-login resolution command are recorded in
+The pinned Alert Verification, Configurator, RTVI-VLM, and Nemotron Nano tags
+were all resolved on September 22, 2026 with the existing NGC API key. A
+separate Service Key was not required for these repositories in the validated
+organization. Per-image manifest and `linux/amd64` platform digests and the
+temporary-login verification command are recorded in
 [`NGC-IMAGE-RESOLUTION.md`](NGC-IMAGE-RESOLUTION.md).
 
 The separate registry-resolution pass locked `haproxy:3.0-alpine` and the
-other public source images. The complete 26-resolved/3-unresolved tag inventory
+other public source images. The complete 29-resolved/0-unresolved tag inventory
 is recorded in [`source-lock.yaml`](../openshift/nvidia-warehouse/source-lock.yaml).
 
 The source telemetry images and their digests do not block the first render if
@@ -298,8 +297,8 @@ OpenShift and GPU Operator telemetry replace them as designed.
 The next chart revision may use the inventory above, but it is not ready for a
 cluster apply until all of these are closed:
 
-1. Retain the 18 reusable chart-image digests above and resolve the three
-   remaining tagged images plus every derived build output.
+1. Retain the 21 reusable chart-image digests and build, publish, and pin every
+   locally derived image output.
 2. Package the hashed configuration and calibration assets without mutable
    ConfigMap mounts.
 3. Add the 12 initialization translations, including the exact 21-topic Job

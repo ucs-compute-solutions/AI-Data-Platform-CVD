@@ -22,7 +22,8 @@ the applicable NVIDIA licenses and entitlements.
 The Warehouse Operations implementation starter references NVIDIA VSS
 Warehouse application data and protected NGC container images. Neither the
 dataset nor the images are redistributed. Obtain them directly from NVIDIA
-using an appropriately entitled NGC organization and service key.
+using an appropriately scoped NGC key and the required organization
+entitlements.
 
 ## VAST VSS Blueprint
 

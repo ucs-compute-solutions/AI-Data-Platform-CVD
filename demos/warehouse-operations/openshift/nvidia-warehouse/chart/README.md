@@ -38,15 +38,14 @@ The chart is inert with its checked-in values:
 | Target Kubernetes API level | `1.33.9` |
 
 The mixed 3.2.0 and 3.2.1 component tags in `values.yaml` are intentional and
-match `../source-lock.yaml`. Eighteen chart images now use the immutable
-manifest or accepted-runtime digests recorded there. Alert Bridge,
-Configurator, and Nemotron Nano remain unresolved. The template
-helper rejects `latest`, and any enabled unresolved image remains a deployment
-blocker even though its tag is pinned.
+match `../source-lock.yaml`. All 21 source-tagged chart images now use the
+immutable manifest or accepted-runtime digests recorded there. The template
+helper rejects `latest`, and any enabled image without a digest remains a
+deployment blocker even when its tag is pinned.
 
 See
 [`NGC-IMAGE-RESOLUTION.md`](../../../research/NGC-IMAGE-RESOLUTION.md) for the
-pinned-source evidence and credential-safe resolution procedure for the
+pinned-source evidence and credential-safe verification procedure for the
 protected artifacts.
 
 ## Local render checks
@@ -134,9 +133,8 @@ node-exporter, Prometheus, Grafana, and DCGM exporter in this first design.
 
 ## Gaps that block deployment
 
-1. Resolve the three remaining chart images to immutable digests. Build, pin,
-   and publish the source-defined Elasticsearch and init/helper images; pin
-   `jq` and the Logstash protobuf codec inputs.
+1. Build, pin, and publish the source-defined Elasticsearch and init/helper
+   images; pin `jq` and the Logstash protobuf codec inputs.
 2. Populate the disabled configuration groups with exact reviewed files from
    the pinned source. Build and pin the helper images, then replace each Job's
    blocked status, command, and arguments. The endpoint ConfigMap is not an

@@ -56,18 +56,18 @@ security:
       drop:
         - ALL
 
-# Tags below reproduce the mixed 3.2.0/3.2.1 source lock. Empty digest fields
-# are a known blocker and must be resolved before any deployment review.
+# Tags below reproduce the mixed 3.2.0/3.2.1 source lock. Every source image
+# rendered by this chart is pinned to the authenticated registry digest.
 images:
   alertBridge:
     repository: nvcr.io/nvidia/vss-core/vss-alert-verification
     tag: 3.2.0
-    digest: ""
+    digest: sha256:a36745d216ca2396acb2491c75f3af05884e207e782c445e76b06df4976aa275
     pullPolicy: IfNotPresent
   configurator:
     repository: nvcr.io/nvidia/vss-core/vss-configurator
     tag: 3.2.1
-    digest: ""
+    digest: sha256:35e3e31e7d9e62b298d6dbcb91244d54b0686845227f26e46f886493e9fe4504
     pullPolicy: IfNotPresent
   kafka:
     repository: confluentinc/cp-kafka
@@ -162,7 +162,7 @@ images:
   nemotron:
     repository: nvcr.io/nim/nvidia/nvidia-nemotron-nano-9b-v2
     tag: "1"
-    digest: ""
+    digest: sha256:a2f4a5aefe7dd0ff29bfd8d7081ce4977337d1b12081361af7b6283ff9a406b2
     pullPolicy: IfNotPresent
 
 # Existing Secret references only. This chart never creates Secret objects or

@@ -3,7 +3,7 @@
 Status: **implementation starter; not yet deployable**. Checkpoint 3 is in
 progress and no Warehouse resources have been deployed.
 
-Date: 2026-09-21
+Date: 2026-09-22
 
 ## Decision
 
@@ -38,28 +38,25 @@ Prepared in this repository:
 
 - Pinned NVIDIA source, image, model, service, dependency, port, volume, and
   provisional GPU inventory.
-- Immutable digest evidence for 26 of 29 tag-based source images: 16 resolved
+- Immutable digest evidence for all 29 tag-based source images: 19 resolved
   from registries and 10 recovered from accepted source-environment NVIDIA
   Search runtime image IDs.
 - OpenShift porting matrix and an inert-by-default Helm skeleton.
-- Helm `v3.21.3` lint, inert-default render, resolved subset render,
-  zero-replica RT-CV standby render, and unresolved-image fail-closed checks.
+- Helm `v3.18.4` lint, inert-default render, resolved subset render,
+  zero-replica RT-CV standby render, and missing-digest fail-closed checks.
 - Source-locked `base-cvd` controller inventory and plan-first switching tools.
 - Offline safety and failure-injection tests for blocked execution, capacity
   rejection, partial target startup, source-profile recovery, and re-cordoning.
 - Dataset manifest, alert scenario matrix, evidence normalization, scoring, and
   repeatability gates.
-- [Credential-safe resolution procedure](../../demos/warehouse-operations/research/NGC-IMAGE-RESOLUTION.md)
-  for the NGC-protected image tags. An authenticated check resolved RTVI-VLM;
-  Alert Verification and Configurator require a service API key (SAK), while
-  Nemotron Nano remains absent or unauthorized pending a SAK retry and, if
-  necessary, NVIDIA entitlement or tag confirmation.
+- [Credential-safe verification procedure](../../demos/warehouse-operations/research/NGC-IMAGE-RESOLUTION.md)
+  for the NGC-protected image tags. The existing NGC API key resolved Alert
+  Verification, Configurator, RTVI-VLM, and Nemotron Nano; a separate Service
+  Key was not required for these repositories in the validated organization.
 
 Not yet completed:
 
-- Three remaining tag-based image digests—Alert Verification, Configurator,
-  and Nemotron Nano—the derived image outputs, and the final Warehouse
-  GPU-controller map. RTVI-VLM is resolved.
+- The derived image outputs and final Warehouse GPU-controller map.
 - Complete application configuration, init Jobs, Secrets references, Routes,
   NetworkPolicies, SCC validation, and Kubernetes 1.33.9 server-side dry-run.
 - Pre-switch quiescence detection, sanitized state evidence capture, a complete
@@ -626,8 +623,7 @@ Stop before cluster deployment if any of these remain unresolved:
 
 The next checkpoint remains render-only:
 
-1. Resolve the three remaining tagged images and all derived build outputs to
-   immutable digests.
+1. Build and resolve all locally derived image outputs to immutable digests.
 2. Complete the missing configuration, initialization Jobs, probes, storage,
    Service, Route, NetworkPolicy, and approved Secret references.
 3. Run `helm lint` and render the full namespace locally.
