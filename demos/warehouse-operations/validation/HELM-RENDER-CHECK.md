@@ -1,8 +1,8 @@
 # Warehouse Helm Render Check
 
-Date: 2026-09-21
-Helm client: `v3.21.3`
-Chart: `nvidia-warehouse-openshift-skeleton` `0.2.0`
+Date: 2026-09-22
+Helm client: `v3.18.4`
+Chart: `nvidia-warehouse-openshift-skeleton` `0.2.1`
 Target API level: Kubernetes `1.33.9`
 
 This is local render evidence only. No OpenShift API request, namespace,
@@ -16,7 +16,8 @@ resource, Secret, replica, GPU, or scheduling change was made.
 | Default `helm template` | PASS; no Kubernetes resource manifests |
 | Resolved CPU/stateful subset render | PASS; 16 resources across ConfigMap, ServiceAccount, Role, RoleBinding, Service, StatefulSet, Deployment, and Route |
 | RT-CV GPU template review | PASS; one-GPU request/limit and `replicas: 0` standby rendered |
-| Unresolved Configurator image | PASS; rendering stopped with the immutable-digest error |
+| Protected NVIDIA source images | PASS; all four manifest and `linux/amd64` digests recorded |
+| Missing-digest failure injection | PASS; rendering stopped with the immutable-digest error |
 
 The subset render enabled only Kafka, Elasticsearch, the Warehouse UI, and a
 placeholder `.invalid` UI Route so the resource templates could be inspected.
@@ -29,7 +30,6 @@ or validate the actual NVIDIA configuration.
 
 ## Remaining render gates
 
-- Resolve Alert Verification, Configurator, and Nemotron Nano image digests.
 - Build and lock the derived Elasticsearch and helper/init images.
 - Populate and verify the source-locked configuration payloads.
 - Lock Secret names, PVC sizing, SCC behavior, Routes, NetworkPolicies, and

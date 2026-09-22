@@ -98,7 +98,12 @@ The 3.2.1 source intentionally combines republished 3.2.1 components with unchan
 - 3.2.0: alert verification, SDR middleware, agent UI, video analytics API.
 - 3.2.1: configurator, RT-CV, RT-VLM, NvStreamer, VST sensor/stream-processing/ingress, agent, behavior analytics.
 
-Every registry reference is tag-based, not digest-locked. Registry digests must be resolved and added before deployment. The local builds also fetch `jq` 1.7.1 without a checksum, and Kafka-mode Logstash installs unversioned `logstash-codec-protobuf` at startup. These are unresolved supply-chain inputs.
+The upstream source uses tags rather than immutable digests. All 29 external
+tags are resolved in the companion
+[`source-lock.yaml`](../openshift/nvidia-warehouse/source-lock.yaml). The local
+builds still fetch `jq` 1.7.1 without a checksum, and Kafka-mode Logstash
+installs unversioned `logstash-codec-protobuf` at startup. Those derived inputs
+remain unresolved.
 
 ## Model lock
 
@@ -237,7 +242,8 @@ Only names and non-secret selection values are locked. Secret values are never s
 ## Blocking source-closure items
 
 1. `rtvi-vlm-docker-compose.yml` requires `${RTVI_VLM_PORT?}:8000`, but the Warehouse `.env` does not define `RTVI_VLM_PORT`. Warehouse URLs and NVIDIA's profile reference consistently use 8018, while `VLM_PORT=30082` belongs to the disabled standalone VLM NIM. Set and validate `RTVI_VLM_PORT=8018` explicitly before rendering; this is a proposed resolution, not a value present in the `.env`.
-2. Resolve every registry tag to an immutable digest and build/publish the four local init images plus local Elasticsearch image into an approved registry.
+2. Build and publish the four local init images plus the local Elasticsearch
+   image into an approved registry, then record their immutable digests.
 3. Record the licensed app-data archive digest and member inventory only after an authorized download; do the same for model payloads and generated TensorRT engines.
 4. Resolve unpinned build-time/runtime downloads (`jq` and the Logstash protobuf codec) and the Kafka topics referenced but not initialized.
 5. Decide OpenShift GPU sharing/co-location for the two device-0 processes and replace host networking, host paths, Docker socket access, and mutable source-tree mounts with reviewed OpenShift equivalents.

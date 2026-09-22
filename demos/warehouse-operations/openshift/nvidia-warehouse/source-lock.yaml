@@ -1,6 +1,6 @@
 lock_version: "1.0"
 status: pre-deployment-incomplete
-generated_date: "2026-09-21"
+generated_date: "2026-09-22"
 
 source:
   repository: https://github.com/NVIDIA-AI-Blueprints/video-search-and-summarization
@@ -96,15 +96,24 @@ images:
 # Resolved either with `oc image info --filter-by-os=linux/amd64` from the
 # deployment client or from the immutable imageID of an accepted NVIDIA Search
 # runtime. Registry results use the manifest-list digest when one is present;
-# platform_digest records the selected linux/amd64 manifest. Entries carrying
-# an evidence field are architecture-specific runtime observations.
+# platform_digest records the selected linux/amd64 manifest. The evidence
+# field records how each digest was acquired; only
+# accepted-search-runtime-imageID entries are runtime observations.
 image_digest_resolution:
-  date: "2026-09-21"
+  date: "2026-09-22"
   platform: linux/amd64
-  access_status: three-protected-ngc-images-require-service-key-or-additional-entitlement
-  resolved_count: 26
-  unresolved_count: 3
+  access_status: all-source-image-tags-resolved-with-authenticated-ngc-key
+  resolved_count: 29
+  unresolved_count: 0
   resolved:
+    nvcr.io/nvidia/vss-core/vss-alert-verification:3.2.0:
+      digest: sha256:a36745d216ca2396acb2491c75f3af05884e207e782c445e76b06df4976aa275
+      platform_digest: sha256:22090dc1c6741e1829a79fc04e2bb151fead6f8ec8a238ada6eec5a24a1dccf4
+      evidence: authenticated-ngc-registry-manifest-query
+    nvcr.io/nvidia/vss-core/vss-configurator:3.2.1:
+      digest: sha256:35e3e31e7d9e62b298d6dbcb91244d54b0686845227f26e46f886493e9fe4504
+      platform_digest: sha256:6421bfb4c3a94ecb0c19142f28ae2d0dba9a3292862db87bf6b6cd40cc5fc9a6
+      evidence: authenticated-ngc-registry-manifest-query
     confluentinc/cp-kafka:8.2.0:
       digest: sha256:acbbf674f2ed40e5d0a8ca51beb0f00692c866fc22b5ce06f8cadbdc54cd4436
       platform_digest: sha256:e1b1d853560fd5b849eb05bdb21b4b64fab89b7f44c712bbbc26b29f35ed1492
@@ -135,6 +144,10 @@ image_digest_resolution:
     quay.io/prometheus/node-exporter:v1.11.1:
       digest: sha256:0f422f62c15f154af8d8572b23d623aebfb10cec73a5c654d18f911f3f9df241
       platform_digest: sha256:fbd8062b4529e166e902bd62cd93de2f48b36d50af942620d419657265bc20b1
+    nvcr.io/nim/nvidia/nvidia-nemotron-nano-9b-v2:1:
+      digest: sha256:a2f4a5aefe7dd0ff29bfd8d7081ce4977337d1b12081361af7b6283ff9a406b2
+      platform_digest: sha256:bdd975848d5d4e2ae1f701a9b78ff7f6ed7de56498f9c2f250d7d98484b0d40f
+      evidence: authenticated-ngc-registry-manifest-query
     arizephoenix/phoenix:14.15.0:
       digest: sha256:4902edc412785dcd90ad20172c3b15def87d076a18cfc3c3df44df211993f0f0
       platform_digest: sha256:c130fe248ac3a8a53eec39b82d048980447810c373dc7c282af08561ea1c6f5c
@@ -173,7 +186,7 @@ image_digest_resolution:
     nvcr.io/nvidia/vss-core/vss-rt-vlm:3.2.1:
       digest: sha256:5403e0c8fa8b149e7ad15ab1b063b78d610e7a50297dba6ca550ac5cc5ef9504
       platform_digest: sha256:156bc152242ce38d7913ebb75806b3101e815d93755e371507b1dc5c988746cc
-      evidence: entitled-registry-manifest-query
+      evidence: authenticated-ngc-registry-manifest-query
     nvcr.io/nvidia/vss-core/vss-video-analytics-api:3.2.0:
       digest: sha256:2aef26ab5a7394b42da75c53169a9efaf8d2c9278d19de2a214586aafd5e082d
       platform_digest: sha256:2aef26ab5a7394b42da75c53169a9efaf8d2c9278d19de2a214586aafd5e082d
@@ -194,10 +207,7 @@ image_digest_resolution:
       digest: sha256:c39392210816ae0f4c41576a6b8b4c2b664c05f7808e25b6fcc95854beffc5c9
       platform_digest: sha256:c39392210816ae0f4c41576a6b8b4c2b664c05f7808e25b6fcc95854beffc5c9
       evidence: accepted-search-runtime-imageID
-  unresolved:
-    - nvcr.io/nvidia/vss-core/vss-alert-verification:3.2.0
-    - nvcr.io/nvidia/vss-core/vss-configurator:3.2.1
-    - nvcr.io/nim/nvidia/nvidia-nemotron-nano-9b-v2:1
+  unresolved: []
 
 core_configuration_hashes:
   warehouse_environment: 0c6242fb720e34a4d112ed80c26b75f1cb163c1b738a8b91835e1f1a16770857
@@ -208,7 +218,7 @@ core_configuration_hashes:
   agent_config: 0d922090a1ebcf6f4ab6d1d16378dae9be67afc7a82e63d532d662bdb3ee4bd6
 
 blocking_items:
-  - Resolve the three remaining registry tags and every local derived build output to an immutable digest.
+  - Resolve every local derived build output to an immutable digest.
   - Validate the proposed missing RTVI_VLM_PORT value of 8018.
   - Resolve OpenShift co-location for NvStreamer and RT-CV on Compose device 0.
   - Determine GPU requirements for VIOS sensor and stream-processing services.

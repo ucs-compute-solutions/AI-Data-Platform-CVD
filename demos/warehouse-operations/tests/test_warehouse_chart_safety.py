@@ -307,10 +307,10 @@ class WarehouseChartSafetyTests(unittest.TestCase):
         unresolved_images = set(unresolved)
 
         self.assertEqual(resolution["platform"], "linux/amd64")
-        self.assertEqual(resolution["resolved_count"], 26)
-        self.assertEqual(resolution["unresolved_count"], 3)
-        self.assertEqual(len(resolved_images), 26)
-        self.assertEqual(len(unresolved_images), 3)
+        self.assertEqual(resolution["resolved_count"], 29)
+        self.assertEqual(resolution["unresolved_count"], 0)
+        self.assertEqual(len(resolved_images), 29)
+        self.assertEqual(len(unresolved_images), 0)
         self.assertFalse(resolved_images & unresolved_images)
         self.assertEqual(resolved_images | unresolved_images, locked_images)
 

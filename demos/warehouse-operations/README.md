@@ -36,7 +36,7 @@ controller inventory is complete and approved.
 | [`openshift/nvidia-warehouse/source-lock.yaml`](openshift/nvidia-warehouse/source-lock.yaml) | Pinned NVIDIA source, images, models, services, and provisional GPU map |
 | [`research/NVIDIA-SOURCE-INVENTORY.md`](research/NVIDIA-SOURCE-INVENTORY.md) | Source-derived Warehouse component inventory |
 | [`research/WAREHOUSE-CONFIG-INVENTORY.md`](research/WAREHOUSE-CONFIG-INVENTORY.md) | Runtime, initialization, configuration, storage, service-DNS, and digest evidence |
-| [`research/NGC-IMAGE-RESOLUTION.md`](research/NGC-IMAGE-RESOLUTION.md) | Protected-image evidence and credential-safe next step for the three unresolved images |
+| [`research/NGC-IMAGE-RESOLUTION.md`](research/NGC-IMAGE-RESOLUTION.md) | Credential-safe verification and immutable-digest evidence for the four protected NVIDIA images |
 | [`research/OPENSHIFT-PORTING-MATRIX.md`](research/OPENSHIFT-PORTING-MATRIX.md) | Compose-to-OpenShift decisions and unresolved gaps |
 | [`data/warehouse-data-manifest.yaml`](data/warehouse-data-manifest.yaml) | Dataset, camera, hash, and evidence fields |
 | [`data/ALERT-SCENARIO-MATRIX.md`](data/ALERT-SCENARIO-MATRIX.md) | Stock alert types, required evidence, and claim boundaries |

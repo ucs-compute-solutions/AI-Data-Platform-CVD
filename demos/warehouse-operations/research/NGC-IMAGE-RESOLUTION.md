@@ -1,48 +1,33 @@
 # Protected NVIDIA Image Resolution
 
-Status: RTVI-VLM is resolved. Three Warehouse source images still require an
-NGC service account key or additional entitlement before their immutable
-digests can be recorded. No image was pulled and no OpenShift resource was
-changed during this check.
+Status: complete for the four protected NVIDIA source images. On
+September 22, 2026, the existing NGC API key authenticated to `nvcr.io` and
+resolved every pinned image. A separate NGC Service Key was not required for
+these repositories in the validated organization. No image was pulled and no
+OpenShift resource was changed.
 
-## Evidence from the pinned release
+## Verified immutable references
 
-The references below are present in NVIDIA VSS `v3.2.1`, commit
-`7640d917047cf7b0fd3085eefb8282754b56bc94`. This establishes the intended
-source tags, but it does not replace a registry manifest check.
+The source tags come from NVIDIA VSS `v3.2.1`, commit
+`7640d917047cf7b0fd3085eefb8282754b56bc94`. The manifest digest is used by the
+Helm chart; the platform digest records the selected `linux/amd64` image.
 
-| Component | Exact source-locked image | Pinned NVIDIA source evidence | Authenticated registry result | Required access or disposition |
-|---|---|---|---|---|
-| Alert Bridge | `nvcr.io/nvidia/vss-core/vss-alert-verification:3.2.0` | `deploy/docker/services/alert/compose.yml`; `deploy/helm/services/alert/values.yaml` | Login succeeded; registry required a SAK | Use an NGC service key with Catalog container-read scope for the entitled organization |
-| Blueprint Configurator | `nvcr.io/nvidia/vss-core/vss-configurator:3.2.1` | `deploy/docker/industry-profiles/warehouse-operations/warehouse-2d-app/warehouse-2d-app.yml` | Login succeeded; registry required a SAK | Use an NGC service key with Catalog container-read scope for the entitled organization |
-| RTVI-VLM | `nvcr.io/nvidia/vss-core/vss-rt-vlm:3.2.1` | `deploy/docker/services/rtvi/rtvi-vlm/rtvi-vlm-docker-compose.yml`; `deploy/helm/services/rtvi/charts/rtvi-vlm/values.yaml` | Resolved: manifest `sha256:5403e0c8...9504`; linux/amd64 `sha256:156bc152...46cc` | Complete; recorded in the source lock and chart |
-| Nemotron Nano NIM | `nvcr.io/nim/nvidia/nvidia-nemotron-nano-9b-v2:1` | `deploy/docker/services/nim/nvidia-nemotron-nano-9b-v2/compose.yml`; the Base, Search, and Alerts Helm profiles | Login succeeded; image absent or unauthorized | Retry with the service key; if it still fails, request NIM image entitlement or tag confirmation from NVIDIA |
+| Component | Source tag | Manifest digest | `linux/amd64` platform digest |
+|---|---|---|---|
+| Alert Bridge | `nvcr.io/nvidia/vss-core/vss-alert-verification:3.2.0` | `sha256:a36745d216ca2396acb2491c75f3af05884e207e782c445e76b06df4976aa275` | `sha256:22090dc1c6741e1829a79fc04e2bb151fead6f8ec8a238ada6eec5a24a1dccf4` |
+| Blueprint Configurator | `nvcr.io/nvidia/vss-core/vss-configurator:3.2.1` | `sha256:35e3e31e7d9e62b298d6dbcb91244d54b0686845227f26e46f886493e9fe4504` | `sha256:6421bfb4c3a94ecb0c19142f28ae2d0dba9a3292862db87bf6b6cd40cc5fc9a6` |
+| RTVI-VLM | `nvcr.io/nvidia/vss-core/vss-rt-vlm:3.2.1` | `sha256:5403e0c8fa8b149e7ad15ab1b063b78d610e7a50297dba6ca550ac5cc5ef9504` | `sha256:156bc152242ce38d7913ebb75806b3101e815d93755e371507b1dc5c988746cc` |
+| Nemotron Nano NIM | `nvcr.io/nim/nvidia/nvidia-nemotron-nano-9b-v2:1` | `sha256:a2f4a5aefe7dd0ff29bfd8d7081ce4977337d1b12081361af7b6283ff9a406b2` | `sha256:bdd975848d5d4e2ae1f701a9b78ff7f6ed7de56498f9c2f250d7d98484b0d40f` |
 
-The successful RTVI-VLM result proves that the supplied personal key and
-registry login were valid. The other responses are authorization failures.
-They do not justify changing a tag or weakening the chart's fail-closed digest
-gate.
+Two earlier login attempts were rejected before image resolution. A later run
+with the NGC API key authenticated successfully and resolved all four images,
+so those earlier results are not evidence of a Service Key or entitlement
+requirement.
 
-## Service key required for the remaining images
-
-An NGC organization owner or `user_admin` must create the service key from
-**Organization > Service Keys > Create Service Key**. Use the NGC Catalog
-service with the minimum container-read scopes **Get Container** and
-**Get Container list**. Authorize the exact repositories where possible; the
-broader NVIDIA-managed paths are `nvidia/*/*` for VSS Core and `nim/*/*` for
-NIM. Access to restricted NIM artifacts still depends on the organization's
-active NVIDIA entitlement.
-
-NVIDIA documents these key types, scopes, paths, and the meaning of 403 errors
-in the [NGC User Guide](https://docs.nvidia.com/ngc/latest/ngc-user-guide.html).
-New or changed service-key permissions can take several minutes to propagate.
-Use the service-key value as the password at the same hidden prompt below; the
-registry username remains the literal `$oauthtoken`.
-
-## Safe digest-resolution procedure
+## Credential-safe verification procedure
 
 Run the wrapper from the deployment client. It stores registry authentication
-only in a temporary directory, never prints the API key, limits resolution to
+in a temporary directory, never prints the key, limits resolution to
 the four protected source references, writes a digest-only JSON result under
 `/tmp`, and removes the temporary login on exit.
 
@@ -51,15 +36,17 @@ the four protected source references, writes a digest-only JSON result under
 ./demos/warehouse-operations/scripts/resolve-protected-ngc-images.sh
 ```
 
-Expected result with the required service key: all four records have
-`status: resolved`, a manifest-list or image `digest`, and the selected
-`platformDigest` for `linux/amd64`. A 401 is an authentication failure. A 403,
-`Please use sak key`, or `does not exist or you do not have permission` is an
-authorization or entitlement failure. Do not substitute `latest` or another
-tag.
+Enter an NGC API key that can read the pinned repositories. A successful run
+reports `failed: 0`, `resolved: 4`, and a manifest and platform digest for each
+image. HTTP 401 or a rejected registry login means the key did not authenticate.
+HTTP 403 means the authenticated identity cannot read that repository. Do not
+substitute `latest` or another tag.
 
-After a successful run, copy only newly resolved digest values into
+The verified result is recorded in
 [`source-lock.yaml`](../openshift/nvidia-warehouse/source-lock.yaml) and the
-matching entries in the chart
-[`values.yaml`](../openshift/nvidia-warehouse/chart/values.yaml). Do not copy
-the temporary registry-auth file into the repository.
+matching Helm chart [`values.yaml`](../openshift/nvidia-warehouse/chart/values.yaml).
+The temporary JSON evidence contains no credential and must not be treated as a
+registry login file.
+
+NVIDIA documents NGC key types and registry authentication in the
+[NGC User Guide](https://docs.nvidia.com/ngc/latest/ngc-user-guide.html).
