@@ -37,8 +37,13 @@ FOUNDATION = {"StatefulSet/warehouse-kafka", "StatefulSet/warehouse-elasticsearc
 IMMUTABLE_IMAGE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/-]*(?::[A-Za-z0-9_.-]+)?@sha256:[a-f0-9]{64}$")
 DNS_NAME = re.compile(r"^[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$")
 TOKEN = re.compile(r"@@([A-Z][A-Z0-9_]*)@@")
-SENSITIVE = re.compile(r"(?:password|passwd|credential|api[_-]?key|(?:^|[_-])token|access[_-]?token|auth[_-]?token|client[_-]?secret|secret)$", re.I)
-LITERAL_ASSIGNMENT = re.compile(r'''(?im)(?<![A-Za-z0-9_$])["']?(password|passwd|api[_-]?key|access[_-]?token|client[_-]?secret)["']?\s*[:=]\s*["']?([^\s,"'\n}]+)''')
+SENSITIVE = re.compile(r"(?:password|passwd|credential|api[_-]?key|(?:^|[_-])(?:pwd|token)|access[_-]?token|auth[_-]?token|client[_-]?secret|secret)$", re.I)
+CREDENTIAL_ASSIGNMENT = re.compile(r'''(?<![A-Za-z0-9_$])(?P<quote>["']?)(?P<name>[A-Za-z_][A-Za-z0-9_.-]*)(?P=quote)\s*(?P<operator>[:=])\s*''')
+SQL_PASSWORD = re.compile(r"(?i)(?<![A-Za-z0-9_$])PASSWORD\b(?=[\s=])\s*(?:=\s*)?")
+DOLLAR_QUOTE = re.compile(r"\$(?:[A-Za-z_][A-Za-z0-9_]*)?\$")
+PSQL_REFERENCE = re.compile(r''':(?:[A-Za-z_][A-Za-z0-9_]*|'[A-Za-z_][A-Za-z0-9_]*'|"[A-Za-z_][A-Za-z0-9_]*")''')
+ENV_REFERENCE = re.compile(r"\$(?:[A-Za-z_][A-Za-z0-9_]*|\{[A-Za-z_][A-Za-z0-9_]*(?::?\?[^{}]*)?\})")
+URL_USERINFO = re.compile(r"(?i)\b[a-z][a-z0-9+.-]*://[^/\s:@]*:([^/\s@]*)@")
 
 
 class Invalid(ValueError):
@@ -83,10 +88,171 @@ def reference_key(resource):
     return f"{resource.get('kind', '')}/{metadata.get('name', '')}"
 
 
+def _runtime_credential_reference(value):
+    return bool(ENV_REFERENCE.fullmatch(value) or PSQL_REFERENCE.fullmatch(value) or TOKEN.fullmatch(value))
+
+
+def _without_credential_comments(text):
+    """Remove comments outside strings; preserve multiline quoted values."""
+    result, index, quote, dollar = [], 0, None, None
+    while index < len(text):
+        if dollar:
+            if text.startswith(dollar, index):
+                result.append(dollar)
+                index += len(dollar)
+                dollar = None
+                continue
+        elif quote:
+            if text[index] == "\\" and index + 1 < len(text):
+                result.append(text[index:index + 2])
+                index += 2
+                continue
+            if text[index] == quote:
+                quote = None
+        else:
+            boundary = index == 0 or text[index - 1].isspace() or text[index - 1] == ";"
+            line_start = (boundary and (text.startswith("--", index) or text[index] == ";")
+                          and not text[text.rfind("\n", 0, index) + 1:index].strip())
+            if boundary and text.startswith("/*", index):
+                end = text.find("*/", index + 2)
+                end = len(text) if end < 0 else end + 2
+                result.append("\n" * text[index:end].count("\n") or " ")
+                index = end
+                continue
+            if boundary and (text.startswith(("#", "//"), index)
+                             or line_start and text.startswith("--", index)
+                             or line_start and text[index] == ";"
+                             and not re.match(r"(?i);\s*(?:ALTER|CREATE|SET|SELECT|DO)\b", text[index:])):
+                end = text.find("\n", index)
+                index = len(text) if end < 0 else end
+                continue
+            if text[index] in "\"'`":
+                quote = text[index]
+            else:
+                match = DOLLAR_QUOTE.match(text, index)
+                if match:
+                    dollar = match.group()
+                    result.append(dollar)
+                    index = match.end()
+                    continue
+        result.append(text[index])
+        index += 1
+    return "".join(result)
+
+
+def _credential_token(text, start, *, shell=False):
+    """Return a complete quoted, dollar-quoted or shell-expression value."""
+    if start >= len(text):
+        return "", "bare", start
+    endings = ";&|" if shell else ",;})]&?"
+    psql = PSQL_REFERENCE.match(text, start)
+    if psql:
+        if psql.end() < len(text) and not text[psql.end()].isspace() and text[psql.end()] not in endings:
+            return text[start:psql.end() + 1], "concatenated", psql.end() + 1
+        return psql.group(), "reference", psql.end()
+    dollar = None if shell else DOLLAR_QUOTE.match(text, start)
+    if dollar:
+        end = text.find(dollar.group(), dollar.end())
+        if end < 0:
+            return "", "invalid", len(text)
+        return text[dollar.end():end], "dollar", end + len(dollar.group())
+    position = start
+    if not shell and text[position] in "eEnN" and position + 1 < len(text) and text[position + 1] in "\"'":
+        position += 1
+    if text[position] in "\"'":
+        quote, begin = text[position], position + 1
+        position = begin
+        while position < len(text):
+            if text[position] == "\\":
+                position += 2
+                continue
+            if text[position] == quote:
+                end = position + 1
+                if end < len(text) and not text[end].isspace() and text[end] not in endings:
+                    return text[start:end + 1], "concatenated", end + 1
+                return text[begin:position], "quoted", end
+            position += 1
+        return "", "invalid", len(text)
+    stack = []
+    while position < len(text):
+        character = text[position]
+        if text.startswith(("${", "$("), position):
+            stack.append("}" if text[position + 1] == "{" else ")")
+            position += 2
+            continue
+        if stack and character == stack[-1]:
+            stack.pop()
+        elif not stack and (character.isspace() or character in endings):
+            break
+        position += 1
+    return text[start:position], "bare", position
+
+
+def check_credential_text(text, location):
+    """Reject likely literal credentials without echoing any matched values.
+
+    Exact environment/psql/template references are data bindings, not blanket
+    exemptions for defaults, concatenated strings or command substitutions.
+    """
+    message = f"Possible literal credential at {location}; matched values suppressed; reconstruct Secret injection"
+
+    def safe(value, kind="quoted", *, configuration=False):
+        return (kind not in {"invalid", "concatenated"}
+                and (value == "" or kind != "dollar" and _runtime_credential_reference(value)
+                     or configuration and kind == "bare" and value in {"null", "None", "false", "true", "~"}))
+
+    def inspect(value, depth=0):
+        expect(depth <= 24, "Credential inspection nesting exceeds its bounded limit")
+        if isinstance(value, dict):
+            for key, child in value.items():
+                if SENSITIVE.search(str(key)) and not isinstance(child, (dict, list)):
+                    expect(child is None or type(child) is bool or isinstance(child, str) and safe(child), message)
+                inspect(child, depth + 1)
+            return
+        if isinstance(value, list):
+            for child in value:
+                inspect(child, depth + 1)
+            return
+        if not isinstance(value, str):
+            return
+        try:
+            decoded = json.loads(value)
+        except (ValueError, TypeError):
+            pass
+        else:
+            if isinstance(decoded, (dict, list, str)) and decoded != value:
+                inspect(decoded, depth + 1)
+                return
+        cleaned = _without_credential_comments(re.sub(r"\\\r?\n[ \t]*", "", value))
+        sql_references = []
+        for match in SQL_PASSWORD.finditer(cleaned):
+            start = match.end()
+            reference = PSQL_REFERENCE.match(cleaned, start)
+            if reference:
+                token, kind, end = _credential_token(cleaned, start)
+                expect(safe(token, kind), message)
+                sql_references.append((match.start(), reference.end()))
+                continue
+            prefix = cleaned[start:start + 2]
+            if prefix[:1] in {"'", '"'} or prefix in {"E'", 'e\'', "N'", 'n\'', 'E"', 'e"', 'N"', 'n"'} or DOLLAR_QUOTE.match(cleaned, start):
+                token, kind, _ = _credential_token(cleaned, start)
+                expect(safe(token, kind), message)
+        for match in CREDENTIAL_ASSIGNMENT.finditer(cleaned):
+            if not SENSITIVE.search(match["name"]) or any(start <= match.start() < end for start, end in sql_references):
+                continue
+            token, kind, _ = _credential_token(cleaned, match.end(), shell=match["operator"] == "=")
+            expect(safe(token, kind, configuration=match["operator"] == ":"), message)
+        for match in URL_USERINFO.finditer(cleaned):
+            expect(safe(match.group(1)), message)
+    inspect(text)
+
+
 def check_no_credentials(resources):
     for resource in resources:
         expect(resource.get("kind") != "Secret", "Secret objects are never accepted; provision credentials separately")
         for path, value in walk(resource):
+            if isinstance(value, str) and "binaryData" not in path:
+                check_credential_text(value, reference_key(resource) + ":" + "/".join(path))
             if not isinstance(value, dict):
                 continue
             if "name" in value and "value" in value and SENSITIVE.search(str(value["name"])):
@@ -98,16 +264,7 @@ def check_no_credentials(resources):
                         raw = base64.b64decode(encoded, validate=True)
                         expect(bool(raw) and (filename.endswith(".desc") or raw.startswith(b"\x89PNG\r\n\x1a\n")), "Invalid reviewed calibration/protobuf artifact")
                     continue
-                for field, text in value.items():
-                    if not isinstance(text, str):
-                        continue
-                    for line in text.splitlines():
-                        if line.lstrip().startswith(("#", ";", "//")):
-                            continue
-                        for match in LITERAL_ASSIGNMENT.finditer(line):
-                            literal = match.group(2)
-                            expect(literal in {"null", "None", "false", "true"} or literal.startswith(("${", "$(", "@@")),
-                                   f"Possible literal credential in ConfigMap/{resource['metadata']['name']} field {field}; redact and reconstruct Secret injection")
+                check_credential_text(json.dumps(value), reference_key(resource) + ":" + "/".join(path))
 
 
 def validate_site(site):

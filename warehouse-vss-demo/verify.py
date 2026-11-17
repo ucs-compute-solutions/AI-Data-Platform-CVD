@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 from pathlib import Path, PurePosixPath
 import re
@@ -17,7 +18,7 @@ ROOT = Path(__file__).resolve().parent
 MANIFEST = "package-manifest.json"
 PYTHON_SUITES = (
     "tests", "deployment/tests", "patches/agent-report/tests",
-    "patches/nvstreamer-sync/tests", "clickthrough/browser-only", "images/tests",
+    "patches/nvstreamer-sync/tests", "clickthrough/browser-only", "images/tests", "security",
 )
 
 
@@ -48,6 +49,30 @@ def file_entry(path):
             "executable": bool(path.stat().st_mode & 0o111)}
 
 
+def payload_files(root):
+    """Include tracked files even if ignored, plus publishable untracked files."""
+    try:
+        probe = subprocess.run(["git", "-C", str(root), "rev-parse", "--show-toplevel"],
+                               capture_output=True, text=True)
+    except FileNotFoundError:
+        probe = None
+    if probe is not None and probe.returncode == 0:
+        top = Path(probe.stdout.strip()).resolve()
+        relative = root.resolve().relative_to(top).as_posix()
+        prefix = "" if relative == "." else relative + "/"
+        result = subprocess.run(["git", "-C", str(top), "ls-files", "-z", "--cached",
+                                 "--others", "--exclude-standard", "--", relative],
+                                capture_output=True, check=True)
+        return {name[len(prefix):] for name in result.stdout.decode("utf-8").split("\0")
+                if name and name.startswith(prefix)}
+    # An extracted source package has no Git index. Only interpreter caches
+    # and desktop metadata are excluded; no source or credential file is skipped.
+    return {path.relative_to(root).as_posix() for path in root.rglob("*")
+            if (path.is_file() or path.is_symlink())
+            and not (path.parent.name == "__pycache__" and path.suffix == ".pyc")
+            and path.name != ".DS_Store"}
+
+
 def check_manifest(root):
     manifest = load_json(root / MANIFEST)
     if (manifest.get("format") != 1 or manifest.get("published") is not False
@@ -59,6 +84,8 @@ def check_manifest(root):
         path = source_path(root, name)
         if name == MANIFEST or not path.is_file() or file_entry(path) != expected:
             raise ValueError("missing or changed source: " + name)
+    if payload_files(root) != set(manifest["files"]) | {MANIFEST}:
+        raise ValueError("source inventory differs from manifest; review added or omitted files")
     return manifest
 
 
@@ -90,6 +117,10 @@ def check_content(root, files):
     attribution = re.compile(r"\b(?:chat" + r"gpt|co" + r"dex)\b", re.I)
     credential = re.compile(r"(?:gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{40,}|nvapi-[A-Za-z0-9_-]{30,}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----)")
     bash = shutil.which("bash")
+    spec = importlib.util.spec_from_file_location(
+        "warehouse_credential_guard", ROOT / "deployment/warehouse_deploy.py")
+    guard = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(guard)
     for name in files:
         path = source_path(root, name)
         text = path.read_text(encoding="utf-8")
@@ -101,6 +132,8 @@ def check_content(root, files):
             raise ValueError("workstation-specific path in " + name)
         if credential.search(text):
             raise ValueError("possible credential in " + name + "; value suppressed")
+        if name.endswith((".sh", ".sql", ".json", ".yaml", ".yml", ".env")):
+            guard.check_credential_text(text, name)
         if name.endswith(".py"):
             compile(text, name, "exec")
             counts["python"] += 1

@@ -94,3 +94,6 @@ python3 -B warehouse-vss-demo/verify.py --tests
 
 `--tests` also runs Python, JavaScript and C++ regressions; it needs Node.js
 and a C++17 compiler. Neither command contacts a cluster.
+
+Follow the [credential and merge checks](SECURITY.md) before pushing or merging
+changes. Review all security checks on the current PR head, not only Actions.
