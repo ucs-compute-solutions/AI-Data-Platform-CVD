@@ -11,8 +11,13 @@
       "executable": false
     },
     "README.md": {
-      "bytes": 4924,
-      "sha256": "2fde926668a2099a8d58ee282d10b6146d2143ab854175fe4a925365ef11d071",
+      "bytes": 5083,
+      "sha256": "14fd67d92f15d5d7c63c4f136485bfda4726916ccffd9eca8273a6936298e38a",
+      "executable": false
+    },
+    "SECURITY.md": {
+      "bytes": 2350,
+      "sha256": "4526f8523f3c2bacbf1af9427e10d2890ca3b30352b9866af21996cb569a7cd9",
       "executable": false
     },
     "VALIDATION.md": {
@@ -245,6 +250,11 @@
       "sha256": "ed65d7a08be1edfbaa2d4cb098362aac0f093c867ab99754ffc85f3fcfe81749",
       "executable": false
     },
+    "deployment/tests/test_credential_detection.py": {
+      "bytes": 11931,
+      "sha256": "40f6cc1cd1daef1be50985e2efd65202da969976060a801b484191ad718b2002",
+      "executable": false
+    },
     "deployment/tests/test_populate_assets.py": {
       "bytes": 16695,
       "sha256": "bd3b59de37025277c36116b5c3106851e7eb7ab0cb1b9e5fc765298e70a78960",
@@ -266,8 +276,8 @@
       "executable": false
     },
     "deployment/warehouse_deploy.py": {
-      "bytes": 35997,
-      "sha256": "e86aab3e16644ebda449cc4d4953f3ef6db9e1469faaecc828ff825a09f692d5",
+      "bytes": 43212,
+      "sha256": "19258dfc7ad7bba9b31ae1dd460b5146b74e1cbc254a3f180c51677a425f9c6f",
       "executable": false
     },
     "deployment/warehouse_session.py": {
@@ -520,14 +530,24 @@
       "sha256": "7370b56537b25b726e5044d31155ef6bd95b78035561fd76628294871ef4e2c0",
       "executable": false
     },
+    "security/check_pr_checks.py": {
+      "bytes": 9121,
+      "sha256": "6b77e1b2e14fe0b75d40b26e8eda0521f57316be06d208176e5b7633c65e8537",
+      "executable": false
+    },
+    "security/test_check_pr_checks.py": {
+      "bytes": 13528,
+      "sha256": "fde1ef24e98e3058da3b0a94eaf23349edf4e70ad49e7e61a0ffcce5e109fb11",
+      "executable": false
+    },
     "tests/test_verify.py": {
-      "bytes": 3098,
-      "sha256": "5835d1eb95eda0153504ffe186a44d00822ade8147538e270fd11a70d2b26780",
+      "bytes": 6558,
+      "sha256": "6c0f0513fdce2dd5d2e163c779a426bf69db1143d27d5e9cdfa964a4953b5c07",
       "executable": false
     },
     "verify.py": {
-      "bytes": 7163,
-      "sha256": "51cf91a9da9aef8f1e474b00908d1b3301097e02727856aaa8d8d2307580319e",
+      "bytes": 9038,
+      "sha256": "063849b9fdab8da8cb1f3fc4e625aabf925e6607fc4879eea9ab053f0c239256",
       "executable": false
     }
   }
