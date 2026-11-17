@@ -1,0 +1,42 @@
+{
+  "format": 1,
+  "namespace": "warehouse-vss",
+  "cluster": {
+    "server": "https://api.ocp.example.com:6443",
+    "context": "warehouse-admin",
+    "user": "warehouse-platform-admin",
+    "domain": "cluster.local"
+  },
+  "ingress": {
+    "publicHost": "warehouse.apps.ocp.example.com",
+    "routeHosts": {
+      "warehouse-demo-ui": "warehouse.apps.ocp.example.com"
+    }
+  },
+  "storage": {
+    "rwoClass": "vast-rwo",
+    "rwxClass": "vast-rwx"
+  },
+  "placement": {
+    "gpuNodeSelector": {"workload.example.com/warehouse-gpu": "true"},
+    "cpuNodeSelector": {}
+  },
+  "auth": {
+    "imagePullSecrets": ["ngc-pull"],
+    "secretNames": {
+      "warehouse-ngc-pull": "ngc-pull",
+      "warehouse-ngc-api": "ngc-api",
+      "warehouse-agent-api": "agent-api",
+      "warehouse-vios-postgres-admin": "vios-postgres-admin",
+      "warehouse-vios-postgres-vst": "vios-postgres-vst"
+    }
+  },
+  "images": {"repositoryMirrors": {}, "reviewedImageOverrides": {}},
+  "network": {"addresses": {}, "cidrs": {}},
+  "media": {"sourceSubPath": "hour", "sourceSeconds": 3600},
+  "security": {
+    "sccName": "warehouse-vss-fixed-uid-runtime-default",
+    "clusterRoleName": "warehouse-vss-scc-fixed-uid-runtime-default",
+    "includeClusterResources": false
+  }
+}

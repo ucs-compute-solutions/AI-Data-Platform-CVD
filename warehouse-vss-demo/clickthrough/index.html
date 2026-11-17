@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Cisco AI POD for AI Data Platforms: Warehouse Video Intelligence with NVIDIA AI and VAST Data, using NVIDIA VSS 3.2.1 alerts, evidence and incident reports.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; media-src 'self'; connect-src 'self'; frame-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Cisco AI POD | Warehouse Video Intelligence</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="core.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to demo</a>
+  <header class="site-header">
+    <a class="brand" href="./" aria-label="Cisco AI POD demo home">
+      <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+      <span>Cisco AI POD<span class="brand-subtitle">Cisco · NVIDIA · VAST Data</span></span>
+    </a>
+    <span class="capture-label"><span aria-hidden="true"></span>Captured interactive walkthrough</span>
+  </header>
+  <main id="main" tabindex="-1">
+    <div id="loading" class="loading-state" role="status">Opening the captured Warehouse experience…</div>
+    <section id="error" class="error-state" hidden aria-labelledby="error-title">
+      <p class="eyebrow">Capture package unavailable</p>
+      <h1 id="error-title">This walkthrough needs its captured assets.</h1>
+      <p id="error-detail"></p>
+      <button type="button" id="retry" class="button primary">Try again</button>
+    </section>
+    <section id="landing" hidden aria-labelledby="landing-title">
+      <div class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">NVIDIA VSS 3.2.1 · Warehouse operations</p>
+          <h1 id="landing-title">Cisco AI POD<br> for AI Data Platforms</h1>
+          <p class="hero-subtitle">Warehouse Video Intelligence with NVIDIA AI and VAST Data</p>
+          <p class="hero-summary">See how AI-powered video analytics brings warehouse activity and safety events into focus. Define alerts in plain English, review the matching video, and investigate each incident through reports and follow-up questions.</p>
+          <p class="blueprint-reference">Based on the <a href="https://docs.nvidia.com/vss/3.2.1/warehouse-docs/Introduction.html" target="_blank" rel="noopener noreferrer">NVIDIA VSS 3.2.1 Warehouse Operations Blueprint</a>.</p>
+          <div class="hero-actions"><button class="text-button" id="watch-overview" type="button" hidden>Watch the demo <span aria-hidden="true">▶</span></button><button class="text-button" id="architecture-open" type="button" hidden>See the platform architecture <span aria-hidden="true">↗</span></button></div>
+        </div>
+        <div class="hero-image-wrap" id="overview-wrap" hidden>
+          <img id="overview-image" alt="Captured Warehouse interface" decoding="async">
+          <span class="image-tag">Actual deployment capture</span>
+        </div>
+      </div>
+      <section id="overview-video-panel" class="overview-video-panel" hidden aria-label="Edited demonstration video"><div class="stage-toolbar"><span>Edited recording · actual deployment</span><button type="button" id="overview-video-close" class="small-button">Close video ×</button></div><video id="overview-video" controls preload="none" playsinline aria-label="Edited Warehouse demonstration"></video><p id="overview-video-error" class="asset-error" role="status" hidden>The edited video is not available in this capture package.</p></section>
+      <div class="platform-line" aria-label="Solution platforms"><span>Cisco compute & networking</span><span>NVIDIA accelerated AI</span><span>VAST data services</span><span>Red Hat OpenShift</span></div>
+      <section class="scenario-section" aria-labelledby="scenario-heading">
+        <div class="section-heading"><div><p class="eyebrow">Choose your scenario</p><h2 id="scenario-heading">Two questions. One evidence-led workflow.</h2></div><span class="section-caption">Click through at your own pace</span></div>
+        <div id="scenario-grid" class="scenario-grid"></div>
+      </section>
+      <section class="journey-summary" aria-label="Walkthrough sequence"><span>01 <strong>Create a rule</strong></span><b aria-hidden="true">→</b><span>02 <strong>Review the alert</strong></span><b aria-hidden="true">→</b><span>03 <strong>Play the evidence</strong></span><b aria-hidden="true">→</b><span>04 <strong>Explore the report</strong></span></section>
+      <p class="replay-note">A guided replay of captured deployment results. The walkthrough does not run live video analytics or generate new AI answers.</p>
+    </section>
+    <section id="walkthrough" hidden aria-labelledby="walkthrough-title">
+      <div class="walkthrough-topline"><button id="home" class="text-button" type="button"><span aria-hidden="true">←</span> All scenarios</button><button id="restart" class="text-button" type="button">Restart scenario <span aria-hidden="true">↻</span></button></div>
+      <div class="walkthrough-heading"><div><p class="eyebrow" id="scenario-camera"></p><h1 id="walkthrough-title"></h1></div><span id="step-count" class="step-count"></span></div>
+      <nav id="steps" class="step-navigation" aria-label="Scenario steps"></nav>
+      <div class="experience-grid">
+        <section class="capture-stage" aria-labelledby="step-title">
+          <div class="stage-toolbar"><span id="stage-label">Captured Warehouse UI</span><div><button type="button" id="show-image" class="small-button" hidden>Show captured screen</button><button type="button" id="enlarge" class="small-button" disabled>Enlarge screen <span aria-hidden="true">⤢</span></button></div></div>
+          <div id="screen-container" class="screen-container"><div id="screen-content" class="screen-content"><img id="step-image" alt="" decoding="async"><div id="video-container" class="video-container" hidden><video id="evidence-video" controls preload="metadata" playsinline aria-label="Captured video evidence" aria-describedby="video-caption"></video><p id="video-caption" class="sr-only"></p><p id="video-error" class="asset-error" role="status" hidden>This video is not available in the capture package.</p></div><div id="hotspots" class="hotspots"></div></div><div id="missing-image" class="missing-asset" hidden><span aria-hidden="true">▧</span><p>Screen capture unavailable for this step.</p><p class="small">Use the keyboard arrows to review another captured screen.</p></div></div>
+          <div class="stage-caption"><span class="click-cue" id="click-cue"><i aria-hidden="true"></i>Click the highlighted control on the captured screen.</span><span id="capture-provenance">Recorded deployment</span></div>
+        </section>
+        <aside class="guide-panel" aria-labelledby="step-title"><p class="eyebrow" id="step-eyebrow"></p><h2 id="step-title" tabindex="-1"></h2><p id="step-instruction" class="step-instruction"></p><div id="step-details" class="sr-only"></div><div id="incident-details" class="incident-details sr-only" hidden></div><div id="answer" class="sr-only" aria-live="polite"></div></aside>
+      </div>
+      <p id="keyboard-hint" class="keyboard-hint">Keyboard access: use Tab to reach the highlighted controls. Use ← and → to review screens.</p>
+    </section>
+  </main>
+  <footer class="site-footer"><span>Cisco AI POD · Warehouse operations</span><span>Captured results · no live services</span></footer>
+  <dialog id="image-dialog" class="image-dialog" aria-labelledby="dialog-title"><div class="dialog-toolbar"><h2 id="dialog-title">Captured screen</h2><div><button id="dialog-size" class="small-button" type="button">Original size</button><button id="dialog-close" class="small-button" type="button" aria-label="Close enlarged screen">Close ×</button></div></div><div id="dialog-image-area" class="dialog-image-area"><div id="dialog-screen-content" class="dialog-screen-content"><img id="dialog-image" alt=""><div id="dialog-hotspots" class="hotspots"></div></div></div></dialog>
+  <dialog id="architecture-dialog" class="architecture-dialog" aria-labelledby="architecture-title"><div class="dialog-toolbar"><h2 id="architecture-title">Cisco AI POD platform overview</h2><div><button id="architecture-zoom" class="small-button" type="button">Zoom image</button><button id="architecture-close" class="small-button" type="button">Close architecture ×</button></div></div><p id="architecture-description"></p><div id="architecture-mode-controls" class="architecture-mode-controls" hidden><div class="mode-switch" aria-label="Warehouse analytics presentation mode"><button id="architecture-automatic" type="button" aria-pressed="true">Automatic</button><button id="architecture-click-through" type="button" aria-pressed="false">Click-through</button></div></div><div class="architecture-media"><img id="architecture-still" alt="Cisco AI POD architecture with Cisco UCS C845A, Cisco EBox, Nexus fabrics, Red Hat OpenShift, NVIDIA AI and VAST data services"><video id="architecture-video" controls preload="metadata" playsinline hidden aria-label="Animated Warehouse components, models and GPU allocations"></video><section id="architecture-stage-panel" class="architecture-stage-panel" hidden aria-label="Click-through Warehouse components"><img id="architecture-stage-image" alt=""><div class="architecture-stage-caption"><div><p id="architecture-stage-count" class="eyebrow"></p><h3 id="architecture-stage-title"></h3><p id="architecture-stage-description"></p></div><div class="architecture-step-controls"><button id="architecture-step-back" type="button" class="button secondary">← Back</button><button id="architecture-step-next" type="button" class="button primary">Next →</button></div></div><p id="architecture-stage-status" class="architecture-stage-status" role="status"></p></section></div><div class="architecture-controls"><button id="architecture-back" class="button secondary" type="button" hidden>← Platform overview</button><button id="architecture-next" class="button primary" type="button" hidden>Next: Warehouse analytics in motion →</button></div></dialog>
+  <dialog id="report-dialog" class="report-dialog" aria-labelledby="report-title"><div class="dialog-toolbar"><div><h2 id="report-title">Incident report</h2><p id="report-identity"></p></div><button id="report-close" class="small-button" type="button">Return to incident ×</button></div><div class="report-toolbar"><div id="report-page-controls"><button id="report-page-back" class="small-button" type="button">← Previous page</button><span id="report-page-count">Page 1 of 3</span><button id="report-page-next" class="small-button" type="button">Next page →</button><button id="report-zoom" class="small-button" type="button">Fit width / read closely</button></div><div class="report-file-links"><a id="report-original" href="#">Open original PDF</a><a id="report-download" href="#" download>Download PDF</a></div></div><div id="report-page-area" class="report-page-area"><img id="report-page-image" alt="Original incident report page"><iframe id="report-native-frame" title="Original incident PDF" hidden></iframe><pre id="report-markdown" hidden></pre><p id="report-page-error" class="asset-error" role="alert" hidden>This page could not be displayed. Use Open original PDF or Download PDF above.</p></div><div class="report-footer"><p id="report-status" role="status"></p><div><button id="report-continue" class="button primary" type="button">Continue to questions →</button></div></div></dialog>
+  <noscript><p class="noscript">Enable JavaScript to navigate the captured walkthrough. No live backend is needed.</p></noscript>
+</body>
+</html>

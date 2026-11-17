@@ -1,0 +1,9 @@
+ARG BASE_IMAGE=aidp-nvstreamer-sync:dev-26.08.4-p1
+FROM ${BASE_IMAGE}
+
+# NVIDIA's VIOS runtime defers media-library installation until first start.
+# Install those libraries during the image build so OpenShift does not need
+# apt-get's user/group transitions inside the running Pod.
+USER 0:0
+RUN /home/vst/vst_release/tools/user_additional_install.sh
+USER 1000:1000

@@ -1,0 +1,15 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+ARG BASE_IMAGE=docker.io/library/alpine@sha256:5b10f432ef3da1b8d4c7eb6c487f2f5a8f096bc91145e68878dd4a5019afde11
+FROM ${BASE_IMAGE}
+
+LABEL org.opencontainers.image.title="NVIDIA VSS Warehouse Elasticsearch initialization"
+LABEL org.opencontainers.image.source="https://github.com/NVIDIA-AI-Blueprints/video-search-and-summarization"
+LABEL org.opencontainers.image.revision="7640d917047cf7b0fd3085eefb8282754b56bc94"
+
+RUN apk add --no-cache bash=5.3.3-r1 curl=8.22.0-r0
+
+WORKDIR /opt/mdx
+COPY source/*.sh ./init-scripts/
+RUN chmod 0555 ./init-scripts/*.sh

@@ -1,0 +1,560 @@
+diff --git a/services/ui/apps/nv-metropolis-bp-vss-ui/__tests__/hooks/useChatSidebarMainTabBridge.test.ts b/services/ui/apps/nv-metropolis-bp-vss-ui/__tests__/hooks/useChatSidebarMainTabBridge.test.ts
+index dde684a..42ce7cd 100644
+--- a/services/ui/apps/nv-metropolis-bp-vss-ui/__tests__/hooks/useChatSidebarMainTabBridge.test.ts
++++ b/services/ui/apps/nv-metropolis-bp-vss-ui/__tests__/hooks/useChatSidebarMainTabBridge.test.ts
+@@ -4,6 +4,16 @@ import { act, renderHook } from '@testing-library/react';
+ import { useChatSidebarMainTabBridge } from '../../hooks/useChatSidebarMainTabBridge';
+ 
+ describe('useChatSidebarMainTabBridge', () => {
++  it('forwards the explicit report isolation option without changing ordinary messages', () => {
++    const { result } = renderHook(() => useChatSidebarMainTabBridge({ activeTab: 'alerts', sidebarCollapsed: false }));
++    const submit = jest.fn();
++    act(() => result.current.handleSidebarSubmitMessageReady(submit));
++    act(() => result.current.submitSidebarMessage('Report incident abc', { freshConversation: true }));
++    expect(submit).toHaveBeenLastCalledWith('Report incident abc', { freshConversation: true });
++    act(() => result.current.submitSidebarMessage('ordinary follow-up'));
++    expect(submit).toHaveBeenLastCalledWith('ordinary follow-up', undefined);
++  });
++
+   it('emits messageSubmitted to Search and active tab when active tab is not Search', () => {
+     const { result } = renderHook(() =>
+       useChatSidebarMainTabBridge({
+diff --git a/services/ui/apps/nv-metropolis-bp-vss-ui/components/Home.tsx b/services/ui/apps/nv-metropolis-bp-vss-ui/components/Home.tsx
+index ed6c545..c101fa5 100644
+--- a/services/ui/apps/nv-metropolis-bp-vss-ui/components/Home.tsx
++++ b/services/ui/apps/nv-metropolis-bp-vss-ui/components/Home.tsx
+@@ -33,6 +33,7 @@ import {
+ import { useTheme } from '../hooks/useTheme';
+ import { useAppChatSidebar } from '../hooks/useAppChatSidebar';
+ import { useChatSidebarMainTabBridge } from '../hooks/useChatSidebarMainTabBridge';
++import { createSidebarSubmitChatMessage } from '../utils/sidebarSubmitChatMessage';
+ import { parseMainTabIdFromCallerInfoHash } from '../utils/callerInfoMainTabHash';
+ import { parseSidebarMainTabId } from '../utils/sidebarMainTabChatSubscribers';
+ import { TabWithChatSidebarLayout } from './TabWithChatSidebarLayout';
+@@ -395,10 +396,7 @@ export default function Home({ alertsData, searchData, dashboardData, mapData, v
+ 
+   /** Sidebar chat submit (e.g. Alerts "Generate Report", Search agent queries); only when sidebar is enabled. */
+   const sidebarSubmitChatMessage = deploymentConfig.chatSidebarEnabled
+-    ? (message: string) => {
+-        submitSidebarMessage(message);
+-        highlightSidebarWhenCollapsed();
+-      }
++    ? createSidebarSubmitChatMessage(submitSidebarMessage, highlightSidebarWhenCollapsed)
+     : undefined;
+ 
+   React.useEffect(() => {
+diff --git a/services/ui/apps/nv-metropolis-bp-vss-ui/hooks/useChatSidebarMainTabBridge.ts b/services/ui/apps/nv-metropolis-bp-vss-ui/hooks/useChatSidebarMainTabBridge.ts
+index e8a8dbc..ee31670 100644
+--- a/services/ui/apps/nv-metropolis-bp-vss-ui/hooks/useChatSidebarMainTabBridge.ts
++++ b/services/ui/apps/nv-metropolis-bp-vss-ui/hooks/useChatSidebarMainTabBridge.ts
+@@ -40,7 +40,7 @@ export function useChatSidebarMainTabBridge({
+   // Tracks tab context for in-flight sidebar turns.
+   const pendingSidebarContextTabRef = React.useRef<'search' | 'alerts' | null>(null);
+   const sidebarAnswerTargetTabRef = React.useRef<string | null>(null);
+-  const sidebarSubmitMessageRef = React.useRef<(message: string) => void>();
++  const sidebarSubmitMessageRef = React.useRef<(message: string, options?: { freshConversation?: boolean }) => void>();
+ 
+   const [chatSidebarHighlight, setChatSidebarHighlight] = React.useState(false);
+   const [chatSidebarQueryExecuting, setChatSidebarQueryExecuting] = React.useState(false);
+@@ -162,7 +162,7 @@ export function useChatSidebarMainTabBridge({
+   );
+ 
+   const handleSidebarSubmitMessageReady = React.useCallback(
+-    (submitMessage: (message: string) => void) => {
++    (submitMessage: (message: string, options?: { freshConversation?: boolean }) => void) => {
+       sidebarSubmitMessageRef.current = submitMessage;
+     },
+     [],
+@@ -189,8 +189,8 @@ export function useChatSidebarMainTabBridge({
+     setChatSidebarHighlight(sidebarCollapsed);
+   }, [sidebarCollapsed, sidebarMainTabChatRegistry]);
+ 
+-  const submitSidebarMessage = React.useCallback((message: string) => {
+-    sidebarSubmitMessageRef.current?.(message);
++  const submitSidebarMessage = React.useCallback((message: string, options?: { freshConversation?: boolean }) => {
++    sidebarSubmitMessageRef.current?.(message, options);
+   }, []);
+ 
+   const clearChatSidebarHighlight = React.useCallback(() => {
+diff --git a/services/ui/packages/nemo-agent-toolkit-ui/components/Chat/Chat.tsx b/services/ui/packages/nemo-agent-toolkit-ui/components/Chat/Chat.tsx
+index a8052a3..d2372dd 100644
+--- a/services/ui/packages/nemo-agent-toolkit-ui/components/Chat/Chat.tsx
++++ b/services/ui/packages/nemo-agent-toolkit-ui/components/Chat/Chat.tsx
+@@ -54,6 +54,11 @@ import {
+ } from '@/utils/chatTransform';
+ import { throttle } from '@/utils/data/throttle';
+ import { useUploadFlowCoordinator } from '@/hooks/useUploadFlowCoordinator';
++import {
++  createFreshReportConversation,
++  reportConversationState,
++  type PendingReport,
++} from '@/utils/freshReportConversation';
+ import {
+   shouldAllowChatMessageSend,
+   stripUploadConversationScope,
+@@ -235,6 +240,9 @@ export const Chat = () => {
+   const controllerRef = useRef(new AbortController());
+   const selectedConversationRef = useRef(selectedConversation);
+   const conversationsRef = useRef(conversations);
++  const pendingReportRef = useRef<PendingReport | null>(null);
++  const programmaticBusyRef = useRef(false);
++  programmaticBusyRef.current = Boolean(loading || messageIsStreaming);
+ 
+   const [modalOpen, setModalOpen] = useState(false);
+   const [interactionMessage, setInteractionMessage] = useState(null);
+@@ -1530,17 +1538,50 @@ export const Chat = () => {
+     handleSendRef.current = handleSend;
+   }, [handleSend]);
+ 
++  useEffect(() => {
++    const pending = pendingReportRef.current;
++    if (!pending) return;
++    const state = reportConversationState(
++      pending, selectedConversation, selectedConversationRef.current,
++      Boolean(loading || messageIsStreaming || uploadFlowActiveRef.current),
++    );
++    if (state === 'wait') return;
++    // Clear before dispatch so duplicate renders or clicks cannot send twice.
++    pendingReportRef.current = null;
++    if (state === 'cancel') {
++      toast.error('Report request cancelled because the selected conversation changed.');
++      return;
++    }
++    handleSendRef.current?.({ role: 'user', content: pending.content }, 0);
++  }, [selectedConversation, loading, messageIsStreaming]);
++
+   // Expose programmatic submit to embedder (send a message to the agent without user typing)
+   useEffect(() => {
+     if (!onSubmitMessageReady || !selectedConversation) return;
+-    const submitMessage = (content: string) => {
++    const submitMessage = (content: string, options?: { freshConversation?: boolean }) => {
+       if (uploadFlowActiveRef.current) return;
++      if (options?.freshConversation) {
++        if (programmaticBusyRef.current || pendingReportRef.current) {
++          toast.error('Wait for the current request to finish before generating another report.');
++          return;
++        }
++        const fresh = createFreshReportConversation(
++          content, uuidv4(), conversationsRef.current || [], selectedConversationRef.current?.id,
++        );
++        pendingReportRef.current = fresh.pending;
++        conversationsRef.current = fresh.conversations;
++        homeDispatch({ field: 'conversations', value: fresh.conversations });
++        homeDispatch({ field: 'selectedConversation', value: fresh.conversation });
++        saveConversation(fresh.conversation, storageKeyPrefix);
++        saveConversations(fresh.conversations, storageKeyPrefix);
++        return;
++      }
+       const message: Message = { role: 'user', content };
+       handleSendRef.current?.(message, 0);
+       onMessageSubmitted?.();
+     };
+     onSubmitMessageReady(submitMessage);
+-  }, [onSubmitMessageReady, selectedConversation?.id, onMessageSubmitted]);
++  }, [onSubmitMessageReady, selectedConversation?.id, onMessageSubmitted, homeDispatch, storageKeyPrefix]);
+ 
+   // Expose addQueryContext to embedder so external panels can add context items to the chat input
+   useEffect(() => {
+diff --git a/services/ui/packages/nemo-agent-toolkit-ui/lib-src/index.d.ts b/services/ui/packages/nemo-agent-toolkit-ui/lib-src/index.d.ts
+index b125672..3daffa3 100644
+--- a/services/ui/packages/nemo-agent-toolkit-ui/lib-src/index.d.ts
++++ b/services/ui/packages/nemo-agent-toolkit-ui/lib-src/index.d.ts
+@@ -54,7 +54,7 @@ export interface NemoAgentToolkitAppProps {
+   /** Optional: called when an answer finishes; may return a renderable HTML string for parent-app caller info. */
+   onAnswerCompleteWithContent?: (answer: string) => CallerInfo | void;
+   /** Optional: called when chat is ready; receives a function to programmatically submit a message to the agent. */
+-  onSubmitMessageReady?: (submitMessage: (message: string) => void) => void;
++  onSubmitMessageReady?: (submitMessage: (message: string, options?: { freshConversation?: boolean }) => void) => void;
+   /** Optional: called when a message is submitted programmatically (e.g. for attention/highlight). */
+   onMessageSubmitted?: () => void;
+   /** Optional: called when chat is ready; receives a function the embedder can call to add a query context item to the chat input. */
+diff --git a/services/ui/packages/nemo-agent-toolkit-ui/pages/api/home/home.context.tsx b/services/ui/packages/nemo-agent-toolkit-ui/pages/api/home/home.context.tsx
+index 946fb74..3677300 100644
+--- a/services/ui/packages/nemo-agent-toolkit-ui/pages/api/home/home.context.tsx
++++ b/services/ui/packages/nemo-agent-toolkit-ui/pages/api/home/home.context.tsx
+@@ -29,7 +29,7 @@ export interface HomeContextProps {
+   /** Optional: called when an answer finishes; may return a renderable HTML string for parent-app caller info. */
+   onAnswerCompleteWithContent?: (answer: string) => CallerInfo | void;
+   /** Optional: called when chat is ready; receives a function to programmatically submit a message to the agent. */
+-  onSubmitMessageReady?: (submitMessage: (message: string) => void) => void;
++  onSubmitMessageReady?: (submitMessage: (message: string, options?: { freshConversation?: boolean }) => void) => void;
+   /** Optional: called when a message is submitted programmatically (e.g. so embedder can show attention/highlight). */
+   onMessageSubmitted?: () => void;
+   /** Optional: called when chat is ready; receives a function the embedder can call to add a query context item to the chat input. */
+diff --git a/services/ui/packages/nemo-agent-toolkit-ui/pages/api/home/home.tsx b/services/ui/packages/nemo-agent-toolkit-ui/pages/api/home/home.tsx
+index 12e7236..621b919 100644
+--- a/services/ui/packages/nemo-agent-toolkit-ui/pages/api/home/home.tsx
++++ b/services/ui/packages/nemo-agent-toolkit-ui/pages/api/home/home.tsx
+@@ -96,7 +96,7 @@ export interface NemoAgentToolkitAppProps {
+    * Optional: called when the chat is ready; receives a function the embedder can call
+    * to submit a message to the agent programmatically (without the user typing in the chat).
+    */
+-  onSubmitMessageReady?: (submitMessage: (message: string) => void) => void;
++  onSubmitMessageReady?: (submitMessage: (message: string, options?: { freshConversation?: boolean }) => void) => void;
+ 
+   /**
+    * Optional: called when a message is submitted programmatically (via the function from onSubmitMessageReady).
+diff --git a/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/components/AlertsTable.tsx b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/components/AlertsTable.tsx
+index c0ad923..08c2ac8 100644
+--- a/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/components/AlertsTable.tsx
++++ b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/components/AlertsTable.tsx
+@@ -156,7 +156,7 @@ interface AlertsTableProps {
+   /** When true, "Show more" is disabled because auto-refresh would overwrite appended rows. */
+   autoRefreshEnabled?: boolean;
+   /** When set (e.g. VSS app sidebar), alert rows can send the report template to the floating chat. */
+-  submitChatMessage?: (message: string) => void;
++  submitChatMessage?: (message: string, options?: { freshConversation?: boolean }) => void;
+ }
+ 
+ type SortConfig = {
+@@ -370,7 +370,7 @@ type AlertTableBodyRowProps = Readonly<{
+   sensorMap?: Map<string, string>;
+   showObjectsBbox: boolean;
+   alertReportPromptTemplate?: string;
+-  submitChatMessage?: (message: string) => void;
++  submitChatMessage?: (message: string, options?: { freshConversation?: boolean }) => void;
+   tdTextClass: string;
+   toggleRow: (id: string) => void;
+   onAddFilter: (type: FilterType, value: string) => void;
+@@ -536,7 +536,7 @@ type AlertsTableContentProps = Readonly<{
+   sensorMap?: Map<string, string>;
+   showObjectsBbox: boolean;
+   alertReportPromptTemplate?: string;
+-  submitChatMessage?: (message: string) => void;
++  submitChatMessage?: (message: string, options?: { freshConversation?: boolean }) => void;
+   toggleRow: (id: string) => void;
+   onAddFilter: (type: FilterType, value: string) => void;
+   onPlayVideo: (alert: AlertData) => void;
+diff --git a/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/components/MetadataSection.tsx b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/components/MetadataSection.tsx
+index f03998f..86ab10a 100644
+--- a/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/components/MetadataSection.tsx
++++ b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/components/MetadataSection.tsx
+@@ -32,7 +32,7 @@ interface MetadataSectionProps {
+   isDark: boolean;
+   alertReportPromptTemplate?: string;
+   /** When set, "Generate Report" sends the resolved template to the app chat (e.g. VSS sidebar). */
+-  submitChatMessage?: (message: string) => void;
++  submitChatMessage?: (message: string, options?: { freshConversation?: boolean }) => void;
+ }
+ 
+ export const MetadataSection: React.FC<MetadataSectionProps> = ({ 
+@@ -69,7 +69,7 @@ export const MetadataSection: React.FC<MetadataSectionProps> = ({
+ 
+   const handleGenerateReport = () => {
+     if (!submitChatMessage || !formattedPrompt.trim()) return;
+-    submitChatMessage(formattedPrompt);
++    submitChatMessage(formattedPrompt, { freshConversation: true });
+     setIsReportSent(true);
+     setTimeout(() => setIsReportSent(false), 2000);
+   };
+diff --git a/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/types.ts b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/types.ts
+index ef91d4f..f8fbeca 100644
+--- a/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/types.ts
++++ b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/types.ts
+@@ -135,7 +135,7 @@ export interface AlertsComponentProps {
+   // External controls rendering
+   renderControlsInLeftSidebar?: boolean; // Default: false - set true to render controls in external left sidebar
+   onControlsReady?: (handlers: AlertsSidebarControlHandlers) => void; // Callback to provide control handlers externally
+-  submitChatMessage?: (message: string) => void;
++  submitChatMessage?: (message: string, options?: { freshConversation?: boolean }) => void;
+   registerChatAnswerHandler?: (handler: (answer: string) => boolean | void) => void | (() => void);
+   registerSidebarChatEventSubscriber?: (
+     handler: (event: { type: 'messageSubmitted' } | { type: 'answerComplete' }) => void
+diff --git a/services/ui/apps/nv-metropolis-bp-vss-ui/utils/sidebarSubmitChatMessage.ts b/services/ui/apps/nv-metropolis-bp-vss-ui/utils/sidebarSubmitChatMessage.ts
+new file mode 100644
+index 0000000..42838f8
+--- /dev/null
++++ b/services/ui/apps/nv-metropolis-bp-vss-ui/utils/sidebarSubmitChatMessage.ts
+@@ -0,0 +1,11 @@
++// SPDX-License-Identifier: MIT
++/** Home's shared callback must preserve report isolation through the app shell. */
++export function createSidebarSubmitChatMessage(
++  submit: (message: string, options?: { freshConversation?: boolean }) => void,
++  highlight: () => void,
++) {
++  return (message: string, options?: { freshConversation?: boolean }) => {
++    submit(message, options);
++    highlight();
++  };
++}
+diff --git a/services/ui/packages/nemo-agent-toolkit-ui/__tests__/components/Chat.report-conversation.test.tsx b/services/ui/packages/nemo-agent-toolkit-ui/__tests__/components/Chat.report-conversation.test.tsx
+new file mode 100644
+index 0000000..eb9ce6b
+--- /dev/null
++++ b/services/ui/packages/nemo-agent-toolkit-ui/__tests__/components/Chat.report-conversation.test.tsx
+@@ -0,0 +1,132 @@
++import React, { useCallback, useState } from 'react';
++import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
++import { Chat } from '@/components/Chat/Chat';
++import HomeContext from '@/pages/api/home/home.context';
++import { useChatSidebarMainTabBridge } from '../../../../apps/nv-metropolis-bp-vss-ui/hooks/useChatSidebarMainTabBridge';
++import { createSidebarSubmitChatMessage } from '../../../../apps/nv-metropolis-bp-vss-ui/utils/sidebarSubmitChatMessage';
++import { MetadataSection } from '../../../nv-metropolis-bp-vss-ui/alerts/lib-src/components/MetadataSection';
++import MockWebSocket from '../../__mocks__/websocket';
++
++jest.mock('@nemo-agent-toolkit/ui', () => ({ copyToClipboard: jest.fn() }), { virtual: true });
++jest.mock('@nvidia/foundations-react-core', () => ({ Button: ({ children, ...props }: any) => <button {...props}>{children}</button> }));
++
++jest.mock('@/components/Chat/ChatHeader', () => ({ ChatHeader: () => null }));
++jest.mock('@/components/Chat/ChatInput', () => ({ ChatInput: () => null }));
++jest.mock('@/components/Chat/ChatLoader', () => ({ ChatLoader: () => null }));
++jest.mock('@/components/Chat/MemoizedChatMessage', () => ({ MemoizedChatMessage: () => null }));
++jest.mock('@/components/Chat/ChatInteractionMessage', () => ({ InteractionModal: () => null }));
++jest.mock('@/hooks/useUploadFlowCoordinator', () => ({
++  useUploadFlowCoordinator: () => ({ uploadFlowActive: false, uploadFlowActiveRef: { current: false }, reportUploadFlowActive: jest.fn() }),
++}));
++jest.mock('@/utils/app/conversation', () => ({
++  saveConversation: jest.fn(), saveConversations: jest.fn(), updateConversation: jest.fn(),
++}));
++jest.mock('@/utils/app/api', () => ({ getEndpoint: () => 'api/chat' }));
++jest.mock('uuid', () => {
++  let count = 0;
++  return { v4: () => `new-uuid-${++count}` };
++});
++
++const old = {
++  id: 'old-conversation', name: 'Earlier report', folderId: null,
++  messages: [{ role: 'assistant', content: 'The earlier incident does not exist.' }],
++};
++
++function mountChat(busy = false, websocket = false) {
++  let submit: (text: string, options?: { freshConversation?: boolean }) => void;
++  let observed: any;
++  let setBusy: () => void;
++  function Harness() {
++    const [state, setState] = useState<any>({
++      selectedConversation: old, conversations: [old], messageIsStreaming: busy,
++      loading: busy, chatHistory: true, webSocketMode: websocket, webSocketConnected: false,
++      webSocketURL: 'ws://localhost/websocket',
++    });
++    observed = state;
++    setBusy = () => setState((current: any) => ({ ...current, loading: true, messageIsStreaming: true }));
++    const bridge = useChatSidebarMainTabBridge({ activeTab: 'alerts', sidebarCollapsed: false });
++    const sidebarSubmit = createSidebarSubmitChatMessage(bridge.submitSidebarMessage, bridge.highlightSidebarWhenCollapsed);
++    const dispatch = useCallback(({ field, value }: any) => {
++      setState((current: any) => current[field] === value ? current : ({ ...current, [field]: value }));
++    }, []);
++    return <HomeContext.Provider value={{
++      state, storageKeyPrefix: 'report-test',
++      dispatch,
++      handleUpdateConversation: jest.fn(), onSubmitMessageReady: (callback: any) => { submit = callback; bridge.handleSidebarSubmitMessageReady(callback); },
++    } as any}><Chat /><MetadataSection alertId="2b78d59d057ce1a60408d83f684da9310d96ed17"
++      sensor="Camera" title="Metadata" data={{ sensorId: 'Camera' }} isDark
++      alertReportPromptTemplate="Generate a report for incident {incidentId} with sensor id {sensorId}."
++      submitChatMessage={sidebarSubmit} /></HomeContext.Provider>;
++  }
++  render(<Harness />);
++  if (busy) act(() => setBusy());
++  return { submit: (...args: Parameters<typeof submit>) => submit(...args), state: () => observed };
++}
++
++describe('Generate Report actual HTTP conversation binding', () => {
++  beforeEach(() => {
++    sessionStorage.clear();
++    (sessionStorage.getItem as jest.Mock).mockReturnValue(null);
++    MockWebSocket.lastInstance = null;
++    global.fetch = jest.fn(() => new Promise(() => {}));
++    Element.prototype.scrollIntoView = jest.fn();
++  });
++
++  it('sends once only after selecting fresh UUID; retains old chat but excludes its messages', async () => {
++    const h = mountChat();
++    act(() => {
++      h.submit('Generate report for new incident', { freshConversation: true });
++      h.submit('duplicate click', { freshConversation: true });
++    });
++    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
++    const [, request] = (fetch as jest.Mock).mock.calls[0];
++    const selected = h.state().selectedConversation;
++    expect(request.headers['Conversation-Id']).toBe(selected.id);
++    expect(selected.id).not.toBe(old.id);
++    expect(JSON.parse(request.body).messages).toEqual([{ role: 'user', content: 'Generate report for new incident' }]);
++    expect(h.state().conversations[0]).toEqual(old);
++    expect(h.state().conversations).toHaveLength(2);
++  });
++
++  it('does not create or send a report while the existing query is active', () => {
++    const h = mountChat(true);
++    act(() => h.submit('Generate report', { freshConversation: true }));
++    expect(fetch).not.toHaveBeenCalled();
++    expect(h.state().conversations).toEqual([old]);
++  });
++
++  it('forwards actual Generate Report through Home callback, app bridge and Chat into a new HTTP identity', async () => {
++    const h = mountChat();
++    fireEvent.click(screen.getByRole('button', { name: 'Generate Report' }));
++    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
++    const [, request] = (fetch as jest.Mock).mock.calls[0];
++    expect(request.headers['Conversation-Id']).toBe(h.state().selectedConversation.id);
++    expect(request.headers['Conversation-Id']).not.toBe(old.id);
++    expect(JSON.parse(request.body).messages).toEqual([{ role: 'user', content: 'Generate a report for incident 2b78d59d057ce1a60408d83f684da9310d96ed17 with sensor id Camera.' }]);
++    expect(h.state().conversations[0]).toEqual(old);
++  });
++
++  it('leaves ordinary chat in the existing conversation with its history', async () => {
++    const h = mountChat();
++    act(() => h.submit('ordinary follow-up'));
++    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
++    const [, request] = (fetch as jest.Mock).mock.calls[0];
++    expect(request.headers['Conversation-Id']).toBe(old.id);
++    expect(JSON.parse(request.body).messages).toEqual([...old.messages, { role: 'user', content: 'ordinary follow-up' }]);
++  });
++
++  it('uses the same newly allocated UUID in the actual WebSocket report request', async () => {
++    const h = mountChat(false, true);
++    const socket = MockWebSocket.lastInstance!;
++    socket.send = jest.fn();
++    act(() => socket.mockOpen());
++    fireEvent.click(screen.getByRole('button', { name: 'Generate Report' }));
++    await waitFor(() => expect(socket.send).toHaveBeenCalledTimes(1));
++    const request = JSON.parse(socket.send.mock.calls[0][0]);
++    expect(request.conversation_id).toBe(h.state().selectedConversation.id);
++    expect(request.conversation_id).not.toBe(old.id);
++    expect(request.content.messages).toEqual([{ role: 'user', content: [{ type: 'text', text: 'Generate a report for incident 2b78d59d057ce1a60408d83f684da9310d96ed17 with sensor id Camera.' }] }]);
++    expect(fetch).not.toHaveBeenCalled();
++    expect(h.state().conversations[0]).toEqual(old);
++  });
++});
+diff --git a/services/ui/packages/nemo-agent-toolkit-ui/__tests__/utils/freshReportConversation.test.ts b/services/ui/packages/nemo-agent-toolkit-ui/__tests__/utils/freshReportConversation.test.ts
+new file mode 100644
+index 0000000..4560a12
+--- /dev/null
++++ b/services/ui/packages/nemo-agent-toolkit-ui/__tests__/utils/freshReportConversation.test.ts
+@@ -0,0 +1,56 @@
++import { createFreshReportConversation, reportConversationState } from '@/utils/freshReportConversation';
++import type { Conversation } from '@/types/chat';
++
++const old: Conversation = {
++  id: 'old-chat', name: 'Earlier report', folderId: null,
++  messages: [{ role: 'assistant', content: 'The old incident does not exist.' }],
++};
++
++describe('Independent alert report conversations', () => {
++  test('creates an empty separate identity and retains every previous chat', () => {
++    const before = JSON.stringify(old);
++    const fresh = createFreshReportConversation('Report incident abc', 'new-uuid', [old], old.id);
++    expect(fresh.conversation.id).not.toBe(old.id);
++    expect(fresh.conversation.messages).toEqual([]);
++    expect(fresh.conversations).toEqual([old, fresh.conversation]);
++    expect(JSON.stringify(old)).toBe(before);
++    expect(fresh.pending.content).toBe('Report incident abc');
++  });
++
++  test('waits for selected state and sender ref; never sends to old conversation', () => {
++    const fresh = createFreshReportConversation('Report abc', 'new-uuid', [old], old.id);
++    expect(reportConversationState(fresh.pending, old, old, false)).toBe('wait');
++    expect(reportConversationState(fresh.pending, fresh.conversation, old, false)).toBe('wait');
++    expect(reportConversationState(fresh.pending, fresh.conversation, fresh.conversation, false)).toBe('ready');
++  });
++
++  test('does not send while another query or upload is active', () => {
++    const fresh = createFreshReportConversation('Report abc', 'new-uuid', [old], old.id);
++    expect(reportConversationState(fresh.pending, fresh.conversation, fresh.conversation, true)).toBe('wait');
++  });
++
++  test('cancels rather than sending into a different user-selected chat', () => {
++    const fresh = createFreshReportConversation('Report abc', 'new-uuid', [old], old.id);
++    const other = { ...fresh.conversation, id: 'other-chat' };
++    expect(reportConversationState(fresh.pending, other, other, false)).toBe('cancel');
++  });
++
++  test('refuses nonempty target history even with the expected fresh ID', () => {
++    const fresh = createFreshReportConversation('Report abc', 'new-uuid', [old], old.id);
++    const polluted = { ...fresh.conversation, messages: old.messages };
++    expect(reportConversationState(fresh.pending, polluted, polluted, false)).toBe('cancel');
++    expect(reportConversationState(fresh.pending, fresh.conversation, polluted, false)).toBe('cancel');
++  });
++
++  test('every repeat report receives another empty identity without deleting first report', () => {
++    const first = createFreshReportConversation('Report abc', 'first-uuid', [old], old.id);
++    const second = createFreshReportConversation('Report abc', 'second-uuid', first.conversations, first.conversation.id);
++    expect(second.conversations.map((item) => item.id)).toEqual(['old-chat', 'first-uuid', 'second-uuid']);
++    expect(second.conversation.messages).toEqual([]);
++  });
++
++  test('refuses reused IDs and empty prompts', () => {
++    expect(() => createFreshReportConversation('Report abc', old.id, [old])).toThrow();
++    expect(() => createFreshReportConversation(' ', 'new-uuid', [old])).toThrow();
++  });
++});
+diff --git a/services/ui/packages/nemo-agent-toolkit-ui/utils/freshReportConversation.ts b/services/ui/packages/nemo-agent-toolkit-ui/utils/freshReportConversation.ts
+new file mode 100644
+index 0000000..d2a8bdf
+--- /dev/null
++++ b/services/ui/packages/nemo-agent-toolkit-ui/utils/freshReportConversation.ts
+@@ -0,0 +1,40 @@
++import type { Conversation } from '@/types/chat';
++
++export type PendingReport = {
++  conversationId: string;
++  previousConversationId?: string;
++  content: string;
++};
++
++/** Allocate a new report turn without changing or deleting earlier chats. */
++export function createFreshReportConversation(
++  content: string,
++  id: string,
++  conversations: Conversation[],
++  previousConversationId?: string,
++) {
++  if (!content.trim() || !id || conversations.some((item) => item.id === id)) {
++    throw new Error('A report requires a new conversation ID and nonempty prompt');
++  }
++  const conversation: Conversation = {
++    id, name: 'Incident report', messages: [], folderId: null,
++  };
++  return {
++    conversation,
++    conversations: [...conversations, conversation],
++    pending: { conversationId: id, previousConversationId, content } as PendingReport,
++  };
++}
++
++/** Wait for React state AND the sender ref to select the exact fresh chat. */
++export function reportConversationState(
++  pending: PendingReport,
++  selected: Conversation | undefined,
++  current: Conversation | undefined,
++  busy: boolean,
++): 'wait' | 'ready' | 'cancel' {
++  if (!selected || selected.id === pending.previousConversationId) return 'wait';
++  if (selected.id !== pending.conversationId || selected.messages.length !== 0) return 'cancel';
++  if (busy || current?.id !== pending.conversationId) return 'wait';
++  return current.messages.length === 0 ? 'ready' : 'cancel';
++}
+diff --git a/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/__tests__/components/MetadataSection.report-isolation.test.tsx b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/__tests__/components/MetadataSection.report-isolation.test.tsx
+new file mode 100644
+index 0000000..583c4d5
+--- /dev/null
++++ b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/__tests__/components/MetadataSection.report-isolation.test.tsx
+@@ -0,0 +1,29 @@
++import React from 'react';
++import { fireEvent, render, screen } from '@testing-library/react';
++import { MetadataSection } from '../../lib-src/components/MetadataSection';
++
++describe('Generate Report isolation', () => {
++  afterEach(() => jest.useRealTimers());
++
++  it('requests a fresh conversation with the original incident and sensor', () => {
++    jest.useFakeTimers();
++    const submit = jest.fn();
++    render(<MetadataSection alertId="2b78d59d057ce1a60408d83f684da9310d96ed17"
++      sensor="Camera" title="Metadata" data={{ Id: '2b78d59d057ce1a60408d83f684da9310d96ed17' }}
++      isDark alertReportPromptTemplate="Generate a report for incident {incidentId} with sensor id {sensorId}."
++      submitChatMessage={submit} />);
++    fireEvent.click(screen.getByRole('button', { name: 'Generate Report' }));
++    expect(submit).toHaveBeenCalledTimes(1);
++    expect(submit).toHaveBeenCalledWith(
++      'Generate a report for incident 2b78d59d057ce1a60408d83f684da9310d96ed17 with sensor id Camera.',
++      { freshConversation: true },
++    );
++  });
++
++  it('does not offer report submission for a placeholder alert identifier', () => {
++    render(<MetadataSection alertId="alert-placeholder" sensor="Camera" title="Metadata"
++      data={{ sensorId: 'Camera' }} isDark alertReportPromptTemplate="Report {incidentId}."
++      submitChatMessage={jest.fn()} />);
++    expect(screen.queryByRole('button', { name: 'Generate Report' })).toBeNull();
++  });
++});

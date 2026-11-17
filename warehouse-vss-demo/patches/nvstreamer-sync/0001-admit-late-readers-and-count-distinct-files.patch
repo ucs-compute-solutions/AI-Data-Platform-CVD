@@ -1,0 +1,82 @@
+diff --git a/services/vios/src/modules/rtsp_server/DynamicRTSPServer.cpp b/services/vios/src/modules/rtsp_server/DynamicRTSPServer.cpp
+--- a/services/vios/src/modules/rtsp_server/DynamicRTSPServer.cpp
++++ b/services/vios/src/modules/rtsp_server/DynamicRTSPServer.cpp
+@@ -251,19 +251,6 @@
+         return;
+     }
+ 
+-    if (GET_CONFIG().nv_streamer_sync_file_count > 0)
+-    {
+-        if (RtspSyncPlayback::getInstance()->getMediaSourceListSize() >= (size_t)GET_CONFIG().nv_streamer_sync_file_count)
+-        {
+-            LOG(info) << "RTSP lookup: Exceeded sync file count, ignoring the request" << std::endl;
+-            if (completionFunc != nullptr)
+-            {
+-                (*completionFunc)(completionClientData, sms);
+-            }
+-            return;
+-        }
+-    }
+-
+     // First, check whether the specified "streamName" exists as a local file:
+     string token = string(NV_STREAMER);
+     string url = stream_name.substr(stream_name.find(token) + token.size());
+diff --git a/services/vios/src/modules/rtsp_server/RtspSyncPlayback.h b/services/vios/src/modules/rtsp_server/RtspSyncPlayback.h
+--- a/services/vios/src/modules/rtsp_server/RtspSyncPlayback.h
++++ b/services/vios/src/modules/rtsp_server/RtspSyncPlayback.h
+@@ -19,8 +19,9 @@
+ #include "gstdemux.h"
+ #include "network_utils.h"
+ #include "vstmodule.h"
+ #include <future>
++#include <unordered_set>
+ #include "liveMedia.hh"
+ #include "NvMediaSource.hh"
+ 
+ inline constexpr int DEFAULT_IDR_INTERVAL = 30;
+@@ -442,12 +443,26 @@
+         }
+     }
+ 
+     size_t getMediaSourceListSize()
+     {
+         std::lock_guard<std::mutex> guard(m_mediaSourceListLock);
+         return m_mediaSourceList.size();
+     }
+ 
++    size_t getDistinctFilenameCount()
++    {
++        std::lock_guard<std::mutex> guard(m_mediaSourceListLock);
++        std::unordered_set<std::string> filenames;
++        for (const auto& source : m_mediaSourceList)
++        {
++            if (source)
++            {
++                filenames.insert(source->getFilename());
++            }
++        }
++        return filenames.size();
++    }
++
+     void startPlayingAllSources()
+     {
+         std::lock_guard<std::mutex> guard(m_mediaSourceListLock);
+diff --git a/services/vios/src/modules/rtsp_server/NvMediaServer.cpp b/services/vios/src/modules/rtsp_server/NvMediaServer.cpp
+--- a/services/vios/src/modules/rtsp_server/NvMediaServer.cpp
++++ b/services/vios/src/modules/rtsp_server/NvMediaServer.cpp
+@@ -325,11 +325,10 @@
+                     syncPlaybackInstance->insertMediaSource(m_mediaSource);
+                     if (!syncPlaybackInstance->isSyncPlaybackStarted())
+                     {
+-                        /* Initial synchronized start: park this source until the
+-                         * quorum (nv_streamer_sync_file_count streams) have
+-                         * requested PLAY, then release them all together at
+-                         * frame 0 on a shared clock. */
+-                        if (syncPlaybackInstance->getMediaSourceListSize() >= (size_t)GET_CONFIG().nv_streamer_sync_file_count)
++                        /* Park sources until the configured number of distinct
++                         * video files has requested PLAY. Multiple RTSP clients
++                         * for one camera must not satisfy the four-file quorum. */
++                        if (syncPlaybackInstance->getDistinctFilenameCount() >= (size_t)GET_CONFIG().nv_streamer_sync_file_count)
+                         {
+                             syncPlaybackInstance->startPlayingAllSources();
+                         }

@@ -1,0 +1,155 @@
+diff --git a/services/vios/src/framework/media/media_pipelines/gstdemux.cpp b/services/vios/src/framework/media/media_pipelines/gstdemux.cpp
+--- a/services/vios/src/framework/media/media_pipelines/gstdemux.cpp
++++ b/services/vios/src/framework/media/media_pipelines/gstdemux.cpp
+@@ -101,7 +101,7 @@
+                     LOG(info) << "GST_MESSAGE_EOS, m_sessionId:" << gstDemux->getSessionId() << endl;
+                     if (GET_CONFIG().nv_streamer_sync_file_count > 0 && gstDemux->isLoopPlayback())
+                     {
+-                        RtspSyncPlayback::getInstance()->addToReplayList(gstDemux->getFilename());
++                        RtspSyncPlayback::getInstance()->addToReplayList(gstDemux->getSessionId());
+                     }
+                     else if (!gstDemux->m_isVodStream)
+                     {
+diff --git a/services/vios/src/modules/rtsp_server/NvMediaSource.hh b/services/vios/src/modules/rtsp_server/NvMediaSource.hh
+--- a/services/vios/src/modules/rtsp_server/NvMediaSource.hh
++++ b/services/vios/src/modules/rtsp_server/NvMediaSource.hh
+@@ -97,6 +97,7 @@
+         void resume ();
+         bool isError();
+         string getFilename() { return m_filename; }
++        string getSessionId() const { return m_sessionId; }
+         eMediaType getMediaType() { return m_mediaType; }
+         eSourceType getSourceType() { return m_sourceType; }
+         int64_t getStartTime();
+diff --git a/services/vios/src/modules/rtsp_server/NvMediaServer.cpp b/services/vios/src/modules/rtsp_server/NvMediaServer.cpp
+--- a/services/vios/src/modules/rtsp_server/NvMediaServer.cpp
++++ b/services/vios/src/modules/rtsp_server/NvMediaServer.cpp
+@@ -79,6 +79,10 @@
+         envir().taskScheduler().unscheduleDelayedTask(m_PlayModeCheckTask);
+         if (m_mediaSource)
+         {
++            if (GET_CONFIG().nv_streamer_sync_file_count > 0)
++            {
++                RtspSyncPlayback::getInstance()->removeMediaSource(m_mediaSource);
++            }
+             m_mediaSource->destroy();
+             GarbageCollector::getInstace()->insert(move(m_mediaSource));
+             m_mediaSource = nullptr;
+diff --git a/services/vios/src/modules/rtsp_server/RtspSyncPlayback.h b/services/vios/src/modules/rtsp_server/RtspSyncPlayback.h
+--- a/services/vios/src/modules/rtsp_server/RtspSyncPlayback.h
++++ b/services/vios/src/modules/rtsp_server/RtspSyncPlayback.h
+@@ -402,8 +402,17 @@
+     {
+         if (media_source)
+         {
+             std::lock_guard<std::mutex> guard(m_mediaSourceListLock);
+-            m_mediaSourceList.push_back(media_source);
++            const std::string sessionId = media_source->getSessionId();
++            auto existing = std::find_if(m_mediaSourceList.begin(), m_mediaSourceList.end(),
++                [&media_source, &sessionId](const std::shared_ptr<NvMediaSource>& source) {
++                    return source == media_source ||
++                        (source && source->getSessionId() == sessionId);
++                });
++            if (existing == m_mediaSourceList.end())
++            {
++                m_mediaSourceList.push_back(media_source);
++            }
+         }
+     }
+ 
+@@ -413,8 +422,13 @@
+         {
+             return;
+         }
+         std::lock_guard<std::mutex> mguard(m_mediaSourceListLock);
++        if (std::find(m_mediaSourceList.begin(), m_mediaSourceList.end(), media_source) == m_mediaSourceList.end())
++        {
++            return;
++        }
+         m_mediaSourceList.erase(std::remove(m_mediaSourceList.begin(), m_mediaSourceList.end(), media_source), m_mediaSourceList.end());
++        m_replaySessions.erase(media_source->getSessionId());
+ 
+         if (m_mediaSourceList.empty())
+         {
+@@ -424,7 +438,6 @@
+              * group's rate before startPlayingAllSources re-captures it. */
+             m_isSyncPlaybackStarted = false;
+             m_groupFrameRate.store(DEFAULT_FRAMERATE);
+-            std::lock_guard<std::mutex> rguard(m_replayListLock);
+-            m_replayList.clear();
++            m_replaySessions.clear();
+             LOG(info) << "Sync group drained, resetting for a fresh start" << endl;
+             return;
+@@ -432,12 +445,8 @@
+ 
+         /* A source that surviving participants were parked on at the loop
+          * barrier just left. Re-evaluate so the survivors don't stall. */
+-        size_t arrived = 0;
+-        {
+-            std::lock_guard<std::mutex> rguard(m_replayListLock);
+-            arrived = m_replayList.size();
+-        }
+-        if (arrived > 0 && arrived >= m_mediaSourceList.size())
++        if (!m_replaySessions.empty() &&
++            m_replaySessions.size() >= m_mediaSourceList.size())
+         {
+             triggerGroupReplayLocked();
+         }
+@@ -522,20 +531,28 @@
+     }
+ 
+ 
+-    void addToReplayList(const std::string& filename)
++    void addToReplayList(const std::string& sessionId)
+     {
+         std::lock_guard<std::mutex> mguard(m_mediaSourceListLock);
+-        size_t arrived = 0;
++        if (!m_isSyncPlaybackStarted || sessionId.empty() || m_mediaSourceList.empty())
+         {
+-            std::lock_guard<std::mutex> rguard(m_replayListLock);
+-            m_replayList.push_back(filename);
+-            arrived = m_replayList.size();
++            return;
+         }
+-        /* Restart the loop once every currently-registered source has
+-         * reached EOS. Using >= (rather than ==) keeps the barrier robust
+-         * to membership that shrank after some sources already signalled,
+-         * so the group can never deadlock at a loop boundary. */
+-        if (!m_mediaSourceList.empty() && arrived >= m_mediaSourceList.size())
++        auto active = std::find_if(m_mediaSourceList.begin(), m_mediaSourceList.end(),
++            [&sessionId](const std::shared_ptr<NvMediaSource>& source) {
++                return source && source->getSessionId() == sessionId;
++            });
++        if (active == m_mediaSourceList.end())
++        {
++            return;
++        }
++        /* A camera can have multiple readers. Count one EOS per active RTSP
++         * session, not one per filename or one per bus callback. */
++        if (!m_replaySessions.insert(sessionId).second)
++        {
++            return;
++        }
++        if (m_replaySessions.size() >= m_mediaSourceList.size())
+         {
+             triggerGroupReplayLocked();
+         }
+@@ -585,8 +602,7 @@
+                 source->seekToStart();
+             }
+         }
+-        std::lock_guard<std::mutex> rguard(m_replayListLock);
+-        m_replayList.clear();
++        m_replaySessions.clear();
+     }
+ 
+     std::atomic<int64_t>    m_globalFrameId{-1};
+@@ -605,7 +621,6 @@
+     std::atomic<double>    m_groupFrameRate{DEFAULT_FRAMERATE};
+     std::mutex              m_mediaSourceListLock;
+     std::vector<std::shared_ptr<NvMediaSource>> m_mediaSourceList;
+-    std::mutex              m_replayListLock;
+-    std::vector<std::string> m_replayList;
++    std::unordered_set<std::string> m_replaySessions;
+     std::atomic<bool>       m_isSyncPlaybackStarted{false};
+ };

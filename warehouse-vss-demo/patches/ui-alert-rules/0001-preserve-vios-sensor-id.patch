@@ -1,0 +1,184 @@
+diff --git a/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/utils/vstSensorList.ts b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/utils/vstSensorList.ts
+--- a/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/utils/vstSensorList.ts
++++ b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/utils/vstSensorList.ts
+@@ -19,9 +19,11 @@ export interface VstLiveStream {
+   name: string;
+   url: string;
+   streamId: string;
++  sensorId: string;
+ }
+ 
+ export interface ResolvedVstStream {
+   sensor_name: string;
++  sensor_id: string;
+   live_stream_url: string;
+ }
+@@ -156,7 +158,7 @@ export const fetchVstLiveStreamCatalog = async (
+   if (Array.isArray(data)) {
+     for (const item of data) {
+       if (!item || typeof item !== 'object') continue;
+-      for (const streams of Object.values(item) as unknown[]) {
++      for (const [sensorId, streams] of Object.entries(item)) {
+         if (!Array.isArray(streams) || streams.length === 0) continue;
+         const info = streams[0] as Record<string, unknown>;
+         const name = typeof info.name === 'string' ? info.name : undefined;
+@@ -163,8 +165,8 @@ export const fetchVstLiveStreamCatalog = async (
+         const url = typeof info.url === 'string' ? info.url : undefined;
+         const streamId =
+           typeof info.streamId === 'string' ? info.streamId : undefined;
+-        if (name && url && streamId) {
+-          result.push({ name, url, streamId });
++        if (sensorId && name && url && streamId) {
++          result.push({ name, url, streamId, sensorId });
+         }
+       }
+     }
+@@ -190,6 +192,7 @@ export const resolveSensorByName = async (
+ 
+   return {
+     sensor_name: match.name,
++    sensor_id: match.sensorId,
+     live_stream_url: match.url,
+   };
+ };
+diff --git a/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/hooks/useRealtimeAlertRules.ts b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/hooks/useRealtimeAlertRules.ts
+--- a/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/hooks/useRealtimeAlertRules.ts
++++ b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/hooks/useRealtimeAlertRules.ts
+@@ -20,6 +20,7 @@ interface UseRealtimeAlertRulesOptions {
+ 
+ export interface CreateRealtimeRuleInput {
+   live_stream_url: string;
++  sensor_id: string;
+   alert_type: string;
+   prompt: string;
+   /** Friendly sensor name (VST `name`). Alert Bridge resolves the stream from this. */
+@@ -143,6 +144,7 @@ export const useRealtimeAlertRules = ({
+           alert_type: input.alert_type,
+           prompt: input.prompt,
+           sensor_name: input.sensor_name,
++          sensor_id: input.sensor_id,
+           status: 'active',
+           created_at: body?.created_at,
+         };
+diff --git a/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/components/CreateAlertRulesView.tsx b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/components/CreateAlertRulesView.tsx
+--- a/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/components/CreateAlertRulesView.tsx
++++ b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/components/CreateAlertRulesView.tsx
+@@ -338,16 +338,16 @@ const RealtimeAlertsTab: React.FC<RealtimeAlertsTabProps> = ({
+       }
+       updateDraft(draftId, { saving: true, error: undefined });
+       try {
+-        // Resolver returns undefined if the sensor isn't in VST's live-stream
+-        // catalog yet — we still forward the name so users can create alert
+-        // rules for streams that will be registered later. Alert Bridge is the
+-        // source of truth on whether that's accepted.
+         const resolved = await resolveSensorByName(vstApiUrl, sensorName);
++        if (!resolved) {
++          throw new Error('Select a sensor in the current VIOS live-stream catalog.');
++        }
+         await createRule({
+-          live_stream_url: resolved?.live_stream_url ?? '',
++          live_stream_url: resolved.live_stream_url,
++          sensor_id: resolved.sensor_id,
+           alert_type,
+           prompt,
+-          sensor_name: resolved?.sensor_name ?? sensorName,
++          sensor_name: resolved.sensor_name,
+         });
+         // Drop the draft on success — the rule shows up in the rules list.
+         setDrafts((prev) => prev.filter((d) => d.draftId !== draftId));
+@@ -1058,6 +1058,6 @@ const SensorPicker: React.FC<SensorPickerProps> = ({
+           className={`text-xs ${isDark ? 'text-neutral-400' : 'text-gray-500'}`}
+         >
+-          Not in VST catalog — will be created against this sensor name.
++          Not in VIOS catalog — register this sensor before saving a rule.
+         </span>
+       )}
+       {errorMessage && (
+diff --git a/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/__tests__/utils/vstSensorList.test.ts b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/__tests__/utils/vstSensorList.test.ts
+--- a/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/__tests__/utils/vstSensorList.test.ts
++++ b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/__tests__/utils/vstSensorList.test.ts
+@@ -67,11 +67,13 @@ describe('vstSensorList', () => {
+         name: 'warehouse-cam-1',
+         url: 'rtsp://10.24.142.82:30554/live/8c7338ec-2266-4eea-aeb4-c568d8944b05',
+         streamId: '8c7338ec-2266-4eea-aeb4-c568d8944b05',
++        sensorId: 'stream-key-1',
+       },
+       {
+         name: 'sample.mp4',
+         url: 'rtsp://10.24.142.82:30554/sample.mp4',
+         streamId: 'mp4-stream-id',
++        sensorId: 'stream-key-2',
+       },
+     ]);
+   });
+@@ -110,6 +112,7 @@ describe('vstSensorList', () => {
+       resolveSensorByName('http://vst.test', 'warehouse-cam-1'),
+     ).resolves.toEqual({
+       sensor_name: 'warehouse-cam-1',
++      sensor_id: 'stream-key-1',
+       live_stream_url:
+         'rtsp://10.24.142.82:30554/live/8c7338ec-2266-4eea-aeb4-c568d8944b05',
+     });
+diff --git a/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/__tests__/hooks/useRealtimeAlertRules.test.ts b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/__tests__/hooks/useRealtimeAlertRules.test.ts
+--- a/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/__tests__/hooks/useRealtimeAlertRules.test.ts
++++ b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/__tests__/hooks/useRealtimeAlertRules.test.ts
+@@ -83,5 +83,6 @@ describe('useRealtimeAlertRules', () => {
+         expect(JSON.parse(init?.body as string)).toEqual({
+           live_stream_url: 'rtsp://localhost:8554/media/video1',
++          sensor_id: 'vios-sensor-1',
+           alert_type: 'collision',
+           prompt: 'Detect any vehicle collisions',
+           sensor_name: 'video1',
+@@ -108,5 +109,6 @@ describe('useRealtimeAlertRules', () => {
+       returnedRule = await result.current.createRule({
+         live_stream_url: 'rtsp://localhost:8554/media/video1',
++        sensor_id: 'vios-sensor-1',
+         alert_type: 'collision',
+         prompt: 'Detect any vehicle collisions',
+         sensor_name: 'video1',
+diff --git a/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/__tests__/components/CreateAlertRulesView.test.tsx b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/__tests__/components/CreateAlertRulesView.test.tsx
+--- a/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/__tests__/components/CreateAlertRulesView.test.tsx
++++ b/services/ui/packages/nv-metropolis-bp-vss-ui/alerts/__tests__/components/CreateAlertRulesView.test.tsx
+@@ -116,6 +116,7 @@ describe('CreateAlertRulesView realtime rules', () => {
+     expect(postCall[0]).toBe('http://alerts.test/api/v1/realtime');
+     expect(JSON.parse(postCall[1].body as string)).toEqual({
+       live_stream_url: liveRtspUrl,
++      sensor_id: 'stream-key-1',
+       alert_type: 'collision',
+       prompt: 'Detect safety violations with ladder',
+       sensor_name: 'warehouse-cam-1',
+@@ -123,7 +124,7 @@ describe('CreateAlertRulesView realtime rules', () => {
+     expect(screen.getAllByText('warehouse-cam-1').length).toBeGreaterThan(0);
+   });
+ 
+-  it('forwards a custom sensor name that is not in the VST catalog', async () => {
++  it('rejects a sensor missing from VIOS without posting an empty RTSP URL', async () => {
+     let rules: RealtimeAlertRule[] = [];
+     global.fetch = jest.fn().mockImplementation((url: string, init?: RequestInit) => {
+       if (url.includes('/v1/live/streams')) {
+@@ -178,20 +179,9 @@ describe('CreateAlertRulesView realtime rules', () => {
+     });
+     fireEvent.click(screen.getByTestId('realtime-alert-draft-save'));
+ 
+-    await waitFor(() => {
+-      const postCall = (global.fetch as jest.Mock).mock.calls.find(
+-        (call: [string, RequestInit?]) => call[1]?.method === 'POST',
+-      );
+-      expect(postCall).toBeTruthy();
+-    });
+-
+-    const postCall = (global.fetch as jest.Mock).mock.calls.find(
+-      (call: [string, RequestInit?]) => call[1]?.method === 'POST',
+-    );
+-    expect(JSON.parse(postCall[1].body as string)).toEqual({
+-      live_stream_url: '',
+-      alert_type: 'collision',
+-      prompt: 'Detect collisions',
+-      sensor_name: 'future-cam-1',
+-    });
++    expect(await screen.findByText('Select a sensor in the current VIOS live-stream catalog.'))
++      .toBeInTheDocument();
++    expect((global.fetch as jest.Mock).mock.calls.some(
++      (call: [string, RequestInit?]) => call[1]?.method === 'POST',
++    )).toBe(false);
+   });

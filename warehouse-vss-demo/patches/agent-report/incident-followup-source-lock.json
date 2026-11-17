@@ -1,0 +1,20 @@
+{
+  "version": "warehouse-incident-followup-v1",
+  "base_image": "nvcr.io/nvidia/vss-core/vss-agent:3.2.1@sha256:b7f3246aaf355ebf96e91a40b2f0abc5dea7e330e7bf9a7cf726107b560c3ac1",
+  "baseline_sha256": {
+    "top_agent.py": "a4aa4a051b589858078a7941cf32de8128d7c22f574bdf718974a70cb0c140c4",
+    "report_agent.py": "0c8392a5bfa9e12e7a387b0c66091d2f147dd50a53378ef14cfe6163458ea55d"
+  },
+  "patched_sha256": {
+    "top_agent.py": "c122dcde526c69c68278c4733a31f0ecbdcb7a0ba3fb0c94cd1382227a19065c",
+    "report_agent.py": "76816a7279c3d4960b8ba72216f6e2d073d216adf758e376e3417f70a57aecf6",
+    "incident_followup.py": "93edeb656bab37192f538cfbb1acd6cf837b698f89fc154558e6508b6a4f19d0"
+  },
+  "patch": {
+    "name": "0007-incident-bound-followup.patch",
+    "sha256": "167afb2d45654dc6cac020436900fd7f749c7cae3af98c0530cea8a4def058de"
+  },
+  "scope": "Warehouse CPU Agent only; report metadata and conversation-scoped visual questions",
+  "deployment": "warehouse-demo-agent",
+  "namespace": "nvidia-vss-321-warehouse"
+}

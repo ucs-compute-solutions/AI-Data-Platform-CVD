@@ -1,0 +1,466 @@
+diff --git a/services/vios/src/framework/media/media_pipelines/gstdemux.cpp b/services/vios/src/framework/media/media_pipelines/gstdemux.cpp
+index b442153..c249187 100644
+--- a/services/vios/src/framework/media/media_pipelines/gstdemux.cpp
++++ b/services/vios/src/framework/media/media_pipelines/gstdemux.cpp
+@@ -101,7 +101,11 @@ namespace nv_vms
+                     LOG(info) << "GST_MESSAGE_EOS, m_sessionId:" << gstDemux->getSessionId() << endl;
+                     if (GET_CONFIG().nv_streamer_sync_file_count > 0 && gstDemux->isLoopPlayback())
+                     {
+-                        RtspSyncPlayback::getInstance()->addToReplayList(gstDemux->getSessionId());
++                        /* Validate the seqnum under the coordinator's group
++                         * lock, immediately before recording EOS. A separate
++                         * check here would race with the next replay arm. */
++                        RtspSyncPlayback::getInstance()->addToReplayList(
++                            gstDemux->getSessionId(), gst_message_get_seqnum(message));
+                     }
+                     else if (!gstDemux->m_isVodStream)
+                     {
+@@ -840,6 +844,65 @@ void GstDeMux::setGstClock(GstClock* global_clock, GstClockTime base_time)
+     m_baseGstTime.store(base_time);
+ }
+ 
++void GstDeMux::armReplayEpoch(guint32 seqnum)
++{
++    if (seqnum == GST_SEQNUM_INVALID)
++    {
++        LOG(error) << "Cannot arm replay with an invalid seqnum, session:" << m_sessionId << endl;
++        return;
++    }
++    std::lock_guard<std::mutex> guard(m_replayEpochLock);
++    m_replaySeekSucceeded = false;
++    m_expectedReplaySeqnum = seqnum;
++    m_prearmedReplaySeqnum = seqnum;
++    LOG(info) << "Armed replay seek, session:" << m_sessionId
++              << ", seqnum:" << seqnum << endl;
++}
++
++bool GstDeMux::consumePrearmedReplaySeek(guint32 seqnum)
++{
++    std::lock_guard<std::mutex> guard(m_replayEpochLock);
++    if (seqnum == GST_SEQNUM_INVALID || m_prearmedReplaySeqnum != seqnum ||
++        m_expectedReplaySeqnum != seqnum || m_replaySeekSucceeded)
++    {
++        LOG(error) << "Rejecting superseded replay seek, session:" << m_sessionId
++                   << ", requestedSeqnum:" << seqnum
++                   << ", expectedSeqnum:" << m_expectedReplaySeqnum << endl;
++        return false;
++    }
++    m_prearmedReplaySeqnum = GST_SEQNUM_INVALID;
++    return true;
++}
++
++void GstDeMux::completeReplaySeek(guint32 seqnum, bool succeeded)
++{
++    std::lock_guard<std::mutex> guard(m_replayEpochLock);
++    if (m_expectedReplaySeqnum == seqnum)
++    {
++        m_replaySeekSucceeded = succeeded;
++    }
++    LOG(info) << "Replay seek result, session:" << m_sessionId
++              << ", seqnum:" << seqnum << ", succeeded:" << succeeded << endl;
++}
++
++bool GstDeMux::acceptsReplayEos(guint32 messageSeqnum)
++{
++    std::lock_guard<std::mutex> guard(m_replayEpochLock);
++    /* The first playback has no application-issued seek. After the first
++     * replay, require the EOS message to match that loop's seek seqnum. */
++    const bool accepted = m_replaySeekSucceeded &&
++        (m_expectedReplaySeqnum == GST_SEQNUM_INVALID ||
++         m_expectedReplaySeqnum == messageSeqnum);
++    if (!accepted)
++    {
++        LOG(info) << "Rejected replay EOS, session:" << m_sessionId
++                  << ", expectedSeqnum:" << m_expectedReplaySeqnum
++                  << ", messageSeqnum:" << messageSeqnum
++                  << ", seekSucceeded:" << m_replaySeekSucceeded << endl;
++    }
++    return accepted;
++}
++
+ int GstDeMux::create_playbin ()
+ {
+     LOG (info) << "Creating Gstreamer demux-playbin pipeline" << endl;
+@@ -1859,7 +1922,7 @@ int GstDeMux::create_audio_pipeline ()
+     return 0;
+ }
+ 
+-void GstDeMux::seek (int64_t seek_pos , uint64_t end_time, float rate /*1*/)
++void GstDeMux::seek (int64_t seek_pos , uint64_t end_time, float rate /*1*/, guint32 replaySeqnum)
+ {
+     LOG (info) << "  pipeline seek_pos:" << seek_pos
+             << ", seek_rate:" << rate << ", end_time:" << end_time << ", m_sessionId:" << m_sessionId << endl;
+@@ -1870,6 +1933,12 @@ void GstDeMux::seek (int64_t seek_pos , uint64_t end_time, float rate /*1*/)
+     {
+         if (seek_pos > 0)
+         {
++            const bool syncEpoch = GET_CONFIG().nv_streamer_sync_file_count > 0 &&
++                                   !m_isVodStream && rate > 0;
++            if (syncEpoch && !consumePrearmedReplaySeek(replaySeqnum))
++            {
++                return;
++            }
+             gst_element_set_state (m_pipeline, GST_STATE_PAUSED);
+             gst_element_get_state (m_pipeline, nullptr, nullptr, 2 * GST_SECOND);
+             m_callbackData.m_index = 0;
+@@ -1901,10 +1970,31 @@ void GstDeMux::seek (int64_t seek_pos , uint64_t end_time, float rate /*1*/)
+ 
+             if (rate > 0)
+             {
+-                if (!gst_element_seek_simple (m_pipeline, GST_FORMAT_TIME,
+-                    (GstSeekFlags)(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT),
+-                    seek_pos * GST_MSECOND))
++                gboolean seekSucceeded = FALSE;
++                if (syncEpoch)
++                {
++                    GstEvent* seekEvent = gst_event_new_seek(1.0, GST_FORMAT_TIME,
++                        (GstSeekFlags)(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT),
++                        GST_SEEK_TYPE_SET, seek_pos * GST_MSECOND,
++                        GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE);
++                    gst_event_set_seqnum(seekEvent, replaySeqnum);
++                    seekSucceeded = gst_element_send_event(m_pipeline, seekEvent);
++                }
++                else
++                {
++                    seekSucceeded = gst_element_seek_simple (m_pipeline, GST_FORMAT_TIME,
++                        (GstSeekFlags)(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT),
++                        seek_pos * GST_MSECOND);
++                }
++                if (!seekSucceeded)
+                 {
++                    if (syncEpoch)
++                    {
++                        completeReplaySeek(replaySeqnum, false);
++                        LOG(error) << "Synchronized RTSP seek failed; EOS remains disarmed, session:"
++                                   << m_sessionId << endl;
++                        return;
++                    }
+                     if (syncClock && GET_CONFIG().nv_streamer_sync_file_count > 0 && !m_isVodStream)
+                     {
+                         gst_element_set_base_time(m_pipeline, m_baseGstTime.load());
+@@ -1925,13 +2015,23 @@ void GstDeMux::seek (int64_t seek_pos , uint64_t end_time, float rate /*1*/)
+             }
+             m_frameId = -1;
+             gst_element_get_state (m_pipeline, nullptr, nullptr, 2 * GST_SECOND);
+-            gst_element_set_state (m_pipeline, GST_STATE_PLAYING);
++            GstStateChangeReturn playResult = gst_element_set_state (m_pipeline, GST_STATE_PLAYING);
++            if (syncEpoch)
++            {
++                completeReplaySeek(replaySeqnum, playResult != GST_STATE_CHANGE_FAILURE);
++            }
+         }
+     }
+ }
+ 
+-void GstDeMux::seekToStart ()
++void GstDeMux::seekToStart (guint32 replaySeqnum)
+ {
++    const bool syncEpoch = GET_CONFIG().nv_streamer_sync_file_count > 0 &&
++                           !m_isVodStream;
++    if (syncEpoch && !consumePrearmedReplaySeek(replaySeqnum))
++    {
++        return;
++    }
+     m_callbackData.m_index = 0;
+     m_isEOS = false;
+     m_stop = false;
+@@ -1941,6 +2041,10 @@ void GstDeMux::seekToStart ()
+     if (!m_pipeline)
+     {
+         // Pipeline not created yet, nothing to seek to.
++        if (syncEpoch)
++        {
++            completeReplaySeek(replaySeqnum, false);
++        }
+         return;
+     }
+ 
+@@ -1960,14 +2064,35 @@ void GstDeMux::seekToStart ()
+     {
+         LOG(error) << "seekToStart: seek target is null for mediaType:"
+                    << mediaTypeAsString(m_mediaType) << ", filename:" << m_filename << endl;
++        if (syncEpoch)
++        {
++            completeReplaySeek(replaySeqnum, false);
++        }
+         return;
+     }
+-    if (!gst_element_seek_simple (seekTarget, GST_FORMAT_TIME,
+-        (GstSeekFlags)(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT), 0))
++    gboolean seekSucceeded = FALSE;
++    if (syncEpoch)
+     {
+-        LOG(error) << "Seek to start failed, Playing from start" << endl;
+-        gst_element_set_state(m_pipeline, GST_STATE_READY);
+-        gst_element_set_state (m_pipeline, GST_STATE_PLAYING);
++        GstEvent* seekEvent = gst_event_new_seek(1.0, GST_FORMAT_TIME,
++            (GstSeekFlags)(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT),
++            GST_SEEK_TYPE_SET, 0, GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE);
++        gst_event_set_seqnum(seekEvent, replaySeqnum);
++        seekSucceeded = gst_element_send_event(seekTarget, seekEvent);
++        completeReplaySeek(replaySeqnum, seekSucceeded);
++    }
++    else
++    {
++        seekSucceeded = gst_element_seek_simple (seekTarget, GST_FORMAT_TIME,
++            (GstSeekFlags)(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT), 0);
++    }
++    if (!seekSucceeded)
++    {
++        LOG(error) << "Seek to start failed, session:" << m_sessionId << endl;
++        if (!syncEpoch)
++        {
++            gst_element_set_state(m_pipeline, GST_STATE_READY);
++            gst_element_set_state (m_pipeline, GST_STATE_PLAYING);
++        }
+     }
+ }
+ 
+diff --git a/services/vios/src/framework/media/media_pipelines/gstdemux.h b/services/vios/src/framework/media/media_pipelines/gstdemux.h
+index 6da719e..554e7aa 100644
+--- a/services/vios/src/framework/media/media_pipelines/gstdemux.h
++++ b/services/vios/src/framework/media/media_pipelines/gstdemux.h
+@@ -120,8 +120,14 @@ namespace nv_vms
+             void sendEoS();
+             void destroy_internal();
+             friend gboolean busWatchFunc (GstBus *bus, GstMessage *message, gpointer data);
+-            void seek (int64_t seek_pos , uint64_t end_time, float rate);
+-            void seekToStart ();
++            void seek (int64_t seek_pos , uint64_t end_time, float rate, guint32 replaySeqnum);
++            void seekToStart (guint32 replaySeqnum);
++            /* In the sync-file-count engine a replay seek is queued on this
++             * demux's event loop. Arm its seqnum before the replay barrier is
++             * cleared, so an EOS left over from the previous loop cannot be
++             * accepted for the next loop. */
++            void armReplayEpoch(guint32 seqnum);
++            bool acceptsReplayEos(guint32 messageSeqnum);
+             uint64_t getFileStartTime() { return m_callbackData.m_fileStartTime; }
+             uint64_t getActualStartTime() { return m_actualStartTime; }
+             void resetActualStartTime() { m_actualStartTime = 0; }
+@@ -160,6 +166,8 @@ namespace nv_vms
+             void addDownloadedFile(const std::string& filePath);
+ 
+         private:
++            bool consumePrearmedReplaySeek(guint32 seqnum);
++            void completeReplaySeek(guint32 seqnum, bool succeeded);
+             int create_video_pipeline ();
+             int create_audio_pipeline ();
+             int updateFileList();
+@@ -224,6 +232,13 @@ namespace nv_vms
+             std::atomic<GstClock*>      m_globalGstClock{nullptr};
+             std::atomic<GstClockTime>   m_baseGstTime{GST_CLOCK_TIME_NONE};
+             bool                    m_loop = false;
++            /* Protected together: EOS can arrive on the GLib bus thread while
++             * the seek runs on NvMediaSource's event-loop thread. A zero
++             * expected seqnum permits only the initial unseeked playback. */
++            std::mutex              m_replayEpochLock;
++            guint32                 m_expectedReplaySeqnum = GST_SEQNUM_INVALID;
++            guint32                 m_prearmedReplaySeqnum = GST_SEQNUM_INVALID;
++            bool                    m_replaySeekSucceeded = true;
+         public:
+             std::shared_ptr<IMediaDataConsumer>     m_mediaConsumer = nullptr;
+             std::mutex                              m_mediaConsumerLock;
+diff --git a/services/vios/src/modules/rtsp_server/NvMediaSource.cpp b/services/vios/src/modules/rtsp_server/NvMediaSource.cpp
+index 9892cd5..da0e9c0 100644
+--- a/services/vios/src/modules/rtsp_server/NvMediaSource.cpp
++++ b/services/vios/src/modules/rtsp_server/NvMediaSource.cpp
+@@ -151,6 +151,20 @@ void NvMediaSource::setClock(GstClock* global_clock, GstClockTime base_time)
+     }
+ }
+ 
++void NvMediaSource::armReplayEpoch(guint32 seqnum)
++{
++    if (m_sourceType == SourceTypeFile && m_demux)
++    {
++        m_demux->armReplayEpoch(seqnum);
++    }
++}
++
++bool NvMediaSource::acceptsReplayEos(guint32 messageSeqnum)
++{
++    return m_sourceType == SourceTypeFile && m_demux &&
++           m_demux->acceptsReplayEos(messageSeqnum);
++}
++
+ void NvMediaSource::play()
+ {
+     std::shared_ptr<EventLoopData> data(new EventLoopData);
+@@ -730,6 +744,15 @@ void NvMediaSource::seek (int64_t seek_pos , uint64_t end_time, float rate /*1*/
+     {
+         std::shared_ptr<EventLoopData> data(new EventLoopData);
+         data->m_taskName = "seek";
++        guint32 replaySeqnum = GST_SEQNUM_INVALID;
++        if (GET_CONFIG().nv_streamer_sync_file_count > 0 &&
++            !m_demux->m_isVodStream && seek_pos > 0 && rate > 0)
++        {
++            /* The event-loop work is asynchronous. Reject old EOS before
++             * queueing the seek, not when the task eventually executes. */
++            replaySeqnum = gst_util_seqnum_next();
++            RtspSyncPlayback::getInstance()->armIndependentReplaySeek(this, replaySeqnum);
++        }
+         m_streamBuf.pause();
+         m_streamBuf.clear();
+         m_demux->registerDataCallback(m_filename, getself());
+@@ -737,12 +760,13 @@ void NvMediaSource::seek (int64_t seek_pos , uint64_t end_time, float rate /*1*/
+         data->m_inData["seek_value"] = seek_pos;
+         data->m_inData["rate"] = rate;
+         data->m_inData["end_time"] = end_time;
++        data->m_inData["replay_seqnum"] = replaySeqnum;
+         m_streamBuf.play();
+         m_eventLoop.postMsg(data);
+     }
+ }
+ 
+-void NvMediaSource::seekToStart ()
++void NvMediaSource::seekToStart (guint32 replaySeqnum)
+ {
+     if (GET_CONFIG().enable_mega_simulation && GET_CONFIG().nv_streamer_sync_playback == true)
+     {
+@@ -754,6 +778,20 @@ void NvMediaSource::seekToStart ()
+         std::shared_ptr<EventLoopData> data(new EventLoopData);
+         data->m_taskName = "seekToStart";
+ 
++        if (GET_CONFIG().nv_streamer_sync_file_count > 0 && !m_demux->m_isVodStream)
++        {
++            if (replaySeqnum == GST_SEQNUM_INVALID)
++            {
++                /* Independent loop restarts are also queued. Pre-arm their
++                 * epoch before the event-loop task can see a stale EOS. */
++                replaySeqnum = gst_util_seqnum_next();
++                RtspSyncPlayback::getInstance()->armIndependentReplaySeek(this, replaySeqnum);
++            }
++            /* A group replay already pre-armed its seqnum while holding the
++             * group lock; do not acquire that lock again here. */
++        }
++        data->m_inData["replay_seqnum"] = replaySeqnum;
++
+         m_streamBuf.pause();
+         m_streamBuf.clear();
+         m_demux->registerDataCallback(m_filename, getself());
+@@ -854,14 +892,16 @@ void NvMediaSource::process_source_message(std::shared_ptr<EventLoopData> data)
+         }
+         else if (source_data->m_taskName == "seekToStart")
+         {
+-            m_demux->seekToStart();
++            const guint32 replaySeqnum = source_data->m_inData["replay_seqnum"].asUInt();
++            m_demux->seekToStart(replaySeqnum);
+         }
+         else if (source_data->m_taskName == "seek")
+         {
+             int64_t seek_pos = source_data->m_inData["seek_value"].asInt64();
+             uint64_t end_time = source_data->m_inData["end_time"].asUInt64();
+             float rate = source_data->m_inData["rate"].asFloat();
+-            m_demux->seek(seek_pos, end_time, rate);
++            const guint32 replaySeqnum = source_data->m_inData["replay_seqnum"].asUInt();
++            m_demux->seek(seek_pos, end_time, rate, replaySeqnum);
+         }
+         else if (source_data->m_taskName == "resume")
+         {
+diff --git a/services/vios/src/modules/rtsp_server/NvMediaSource.hh b/services/vios/src/modules/rtsp_server/NvMediaSource.hh
+index 644e7d7..d726386 100644
+--- a/services/vios/src/modules/rtsp_server/NvMediaSource.hh
++++ b/services/vios/src/modules/rtsp_server/NvMediaSource.hh
+@@ -110,8 +110,10 @@ class NvMediaSource : public IMediaDataConsumer
+         int getChannels();
+         string getUrlParams() { return m_url_params; }
+         void setClock(GstClock* global_clock, GstClockTime base_time);
++        void armReplayEpoch(guint32 seqnum);
++        bool acceptsReplayEos(guint32 messageSeqnum);
+         void seek (int64_t seek_pos , uint64_t end_time, float rate);
+-        void seekToStart ();
++        void seekToStart (guint32 replaySeqnum = GST_SEQNUM_INVALID);
+         void process_source_message(std::shared_ptr<EventLoopData> data);
+         void setBufferState(eBufferMsg buffer_msg);
+         void registerCallback(cb_frameSourceEvent_t callback, NvFileServerMediaSubsession *owner);
+@@ -177,4 +179,4 @@ class NvMediaSource : public IMediaDataConsumer
+         EventLoop               m_eventLoop;
+         StreamBuffer            m_streamBuf;
+         bool                    m_is_error;
+-};
+\ No newline at end of file
++};
+diff --git a/services/vios/src/modules/rtsp_server/RtspSyncPlayback.h b/services/vios/src/modules/rtsp_server/RtspSyncPlayback.h
+index 58e4c6a..ec05a96 100644
+--- a/services/vios/src/modules/rtsp_server/RtspSyncPlayback.h
++++ b/services/vios/src/modules/rtsp_server/RtspSyncPlayback.h
+@@ -21,6 +21,7 @@
+ #include "vstmodule.h"
+ #include <future>
+ #include <unordered_set>
++#include <utility>
+ #include "liveMedia.hh"
+ #include "NvMediaSource.hh"
+ 
+@@ -452,6 +453,16 @@ public:
+         }
+     }
+ 
++    void armIndependentReplaySeek(NvMediaSource* source, guint32 seqnum)
++    {
++        std::lock_guard<std::mutex> guard(m_mediaSourceListLock);
++        if (source)
++        {
++            source->armReplayEpoch(seqnum);
++            m_replaySessions.erase(source->getSessionId());
++        }
++    }
++
+     size_t getMediaSourceListSize()
+     {
+         std::lock_guard<std::mutex> guard(m_mediaSourceListLock);
+@@ -531,7 +542,7 @@ public:
+     }
+ 
+ 
+-    void addToReplayList(const std::string& sessionId)
++    void addToReplayList(const std::string& sessionId, guint32 messageSeqnum)
+     {
+         std::lock_guard<std::mutex> mguard(m_mediaSourceListLock);
+         if (!m_isSyncPlaybackStarted || sessionId.empty() || m_mediaSourceList.empty())
+@@ -546,6 +557,12 @@ public:
+         {
+             return;
+         }
++        /* Keep the epoch check and arrival insert under the same group lock.
++         * All group re-arms use group -> demux epoch lock in this order. */
++        if (!(*active)->acceptsReplayEos(messageSeqnum))
++        {
++            return;
++        }
+         /* A camera can have multiple readers. Count one EOS per active RTSP
+          * session, not one per filename or one per bus callback. */
+         if (!m_replaySessions.insert(sessionId).second)
+@@ -588,20 +605,31 @@ private:
+         m_baseGstTime.store(baseTime);
+         LOG(info) << "Replaying all sources baseGstTime:" << baseTime
+                   << ", count:" << m_mediaSourceList.size() << endl;
++        /* Assign every still-active demux a fresh seek seqnum before
++         * releasing the replay barrier. Its seekToStart is asynchronous;
++         * queued old EOS messages must be rejected in the meantime. */
++        std::vector<std::pair<std::shared_ptr<NvMediaSource>, guint32>> replaySources;
++        replaySources.reserve(m_mediaSourceList.size());
+         for (auto source : m_mediaSourceList)
+         {
+             if (source)
+             {
+-                source->setClock(clock, baseTime);
++                const guint32 replaySeqnum = gst_util_seqnum_next();
++                source->armReplayEpoch(replaySeqnum);
++                replaySources.emplace_back(source, replaySeqnum);
+             }
+         }
+         for (auto source : m_mediaSourceList)
+         {
+             if (source)
+             {
+-                source->seekToStart();
++                source->setClock(clock, baseTime);
+             }
+         }
++        for (const auto& replaySource : replaySources)
++        {
++            replaySource.first->seekToStart(replaySource.second);
++        }
+         m_replaySessions.clear();
+     }
+ 

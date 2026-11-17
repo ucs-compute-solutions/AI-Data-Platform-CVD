@@ -1,0 +1,34 @@
+diff --git a/services/vios/src/framework/media/media_pipelines/gstdemux.cpp b/services/vios/src/framework/media/media_pipelines/gstdemux.cpp
+--- a/services/vios/src/framework/media/media_pipelines/gstdemux.cpp
++++ b/services/vios/src/framework/media/media_pipelines/gstdemux.cpp
+@@ -1884,7 +1884,17 @@ void GstDeMux::seek (int64_t seek_pos , uint64_t end_time, float rate /*1*/)
+             GstClock* syncClock = m_globalGstClock.load();
+             if (syncClock)
+             {
+                 gst_pipeline_use_clock(GST_PIPELINE(m_pipeline), syncClock);
+-                gst_element_set_base_time(m_pipeline, m_baseGstTime.load());
++                GstClockTime baseTime = m_baseGstTime.load();
++                if (GET_CONFIG().nv_streamer_sync_file_count > 0 && !m_isVodStream && rate > 0)
++                {
++                    /* A flushing seek starts a new segment at running time 0.
++                     * Map that segment to its seek position on the group's
++                     * timeline, rather than the beginning of the group loop.
++                     * Keep m_baseGstTime unchanged: group replay resets it and
++                     * seekToStart() must use the new loop's unshifted base. */
++                    baseTime += static_cast<GstClockTime>(seek_pos) * GST_MSECOND;
++                }
++                gst_element_set_base_time(m_pipeline, baseTime);
+                 gst_element_set_start_time(m_pipeline, GST_CLOCK_TIME_NONE);
+             }
+@@ -1894,7 +1904,11 @@ void GstDeMux::seek (int64_t seek_pos , uint64_t end_time, float rate /*1*/)
+                 if (!gst_element_seek_simple (m_pipeline, GST_FORMAT_TIME,
+                     (GstSeekFlags)(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT),
+                     seek_pos * GST_MSECOND))
+                 {
++                    if (syncClock && GET_CONFIG().nv_streamer_sync_file_count > 0 && !m_isVodStream)
++                    {
++                        gst_element_set_base_time(m_pipeline, m_baseGstTime.load());
++                    }
+                     LOG(error) << "Seek failed, Playing from start" << endl;
+                     gst_element_set_state (m_pipeline, GST_STATE_PLAYING);
+                 }

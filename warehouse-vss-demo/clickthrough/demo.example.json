@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "title": "Warehouse video intelligence",
+  "captureDate": "15 November 2026",
+  "overview": {},
+  "scenarios": [
+    {
+      "id": "hard-hat-missing",
+      "title": "Hard Hat Missing",
+      "camera": "Camera_01",
+      "summary": "Ask whether a clearly visible person is missing a hard hat, then inspect the matching evidence and incident report.",
+      "rule": {
+        "name": "Hard Hat Missing",
+        "prompt": "Is a person standing or walking in the aisle clearly visible without a hard hat? Answer only Yes or No. Do not infer a missing hard hat when the person’s head is obscured."
+      },
+      "steps": [
+        {"id": "createRule", "navLabel": "Create rule", "title": "Ask an English-language question", "instruction": "Choose Camera_01, name the rule, and enter the hard-hat question. Captured screens and results must be supplied by the complete demo package."},
+        {"id": "activeRule", "navLabel": "Activate", "title": "Review the active camera rule", "instruction": "The real recorded UI confirms which camera and prompt were saved. This source example has no captured result."},
+        {"id": "alert", "navLabel": "View alert", "title": "Find a matching incident", "instruction": "In the completed package, inspect the captured alert associated with this camera and rule."},
+        {"id": "play", "navLabel": "Play evidence", "title": "Review the recorded evidence", "instruction": "Play the matching captured MP4. No evidence video is included in this source-only example."},
+        {"id": "report", "navLabel": "Report", "title": "Open the incident-bound report", "instruction": "The completed package links the report captured for the same incident and video interval."},
+        {"id": "followup", "navLabel": "Ask questions", "title": "Keep the same incident in context", "instruction": "Explore only the answers captured during the demonstrated report conversation."}
+      ],
+      "reports": [],
+      "followups": [
+        {"question": "What color clothes is the person without a hard hat wearing?"},
+        {"question": "What is that person doing?"}
+      ]
+    },
+    {
+      "id": "forklift-and-person",
+      "title": "Forklift and Person Alert",
+      "camera": "Camera",
+      "summary": "Describe a person near a forklift, inspect the matching clip, and explore the captured observations about visible clothing.",
+      "rule": {
+        "name": "Forklift and Person Alert",
+        "prompt": "Is a person visibly walking close to a forklift in the same warehouse aisle? Start with Yes or No, then describe the visible activity in one short sentence."
+      },
+      "steps": [
+        {"id": "createRule", "navLabel": "Create rule", "title": "Describe the interaction to watch for", "instruction": "Choose the unnumbered Camera and enter the recorded English-language rule. This is not an all-camera selection."},
+        {"id": "activeRule", "navLabel": "Activate", "title": "Review the saved rule", "instruction": "The completed package shows the actual saved prompt and selected camera."},
+        {"id": "alert", "navLabel": "View alert", "title": "Inspect the captured alert", "instruction": "Use the incident camera and time to connect the alert with its recorded evidence."},
+        {"id": "play", "navLabel": "Play evidence", "title": "See what happened in the aisle", "instruction": "Play the saved incident MP4 when it is included in the package. Proximity alone does not establish danger."},
+        {"id": "report", "navLabel": "Report", "title": "Open the corresponding report", "instruction": "The report and playback should refer to the same camera, incident and UTC interval."},
+        {"id": "followup", "navLabel": "Ask questions", "title": "Explore captured observations", "instruction": "Select a recorded question about clothing and visible protective equipment. The walkthrough does not generate new answers."}
+      ],
+      "reports": [],
+      "followups": [
+        {"question": "What is the person walking past the forklift wearing? Is a high-visibility vest or hard hat clearly visible?"},
+        {"question": "Is anyone else wearing a high-visibility vest or hard hat? Describe their clothing and position."}
+      ]
+    }
+  ]
+}

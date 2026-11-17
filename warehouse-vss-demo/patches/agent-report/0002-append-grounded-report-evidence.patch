@@ -1,0 +1,113 @@
+diff --git a/services/agent/src/vss_agents/agents/report_agent.py b/services/agent/src/vss_agents/agents/report_agent.py
+--- a/services/agent/src/vss_agents/agents/report_agent.py
++++ b/services/agent/src/vss_agents/agents/report_agent.py
+@@ -19,9 +19,11 @@ import
+ 
+ from collections.abc import AsyncGenerator
+ from datetime import datetime
++import asyncio
+ import json
+ import logging
+ import time
++import urllib.request
+ from typing import Any
+ from typing import Literal
+ 
+@@ -76,4 +78,76 @@ def _bounded_report_content(report_result: Any) -> str:
+     return content
+ 
+ 
++_ALERT_INDEX_URL = "http://warehouse-elasticsearch:9200/mdx-vlm-incidents-*/_search"
++_MAX_ALERT_LOOKUP_BYTES = 16_384
++
++
++def _enriched_alert_classification(incident_id: str, sensor_id: str, opener: Any = None) -> tuple[str, str] | None:
++    """Read an exact enriched alert label; never infer it from the raw incident."""
++    query = {
++        "size": 1,
++        "query": {"term": {"Id.keyword": incident_id}},
++        "_source": ["Id", "sensorId", "category", "info.verdict"],
++    }
++    request = urllib.request.Request(
++        _ALERT_INDEX_URL,
++        data=json.dumps(query, separators=(",", ":")).encode("utf-8"),
++        headers={"Content-Type": "application/json"},
++        method="POST",
++    )
++    client = opener or urllib.request.build_opener(urllib.request.ProxyHandler({}))
++    try:
++        with client.open(request, timeout=3) as response:
++            if response.status != 200:
++                return None
++            raw = response.read(_MAX_ALERT_LOOKUP_BYTES + 1)
++        if len(raw) > _MAX_ALERT_LOOKUP_BYTES:
++            return None
++        data = json.loads(raw)
++    except (OSError, ValueError, TimeoutError):
++        return None
++    hits = data.get("hits", {}).get("hits", []) if isinstance(data, dict) else []
++    if not isinstance(hits, list) or len(hits) != 1:
++        return None
++    source = hits[0].get("_source") if isinstance(hits[0], dict) else None
++    if not isinstance(source, dict) or source.get("Id") != incident_id or source.get("sensorId") != sensor_id:
++        return None
++    category = source.get("category")
++    info = source.get("info")
++    verdict = info.get("verdict") if isinstance(info, dict) else None
++    if not all(isinstance(value, str) and value.strip() and len(value) <= 100 for value in (category, verdict)):
++        return None
++    if any(char in category + verdict for char in "\r\n<>"):
++        return None
++    return category.strip(), verdict.strip()
++
++
++def _grounded_report_side_effect(
++    incident_id: str, sensor_id: str, report_text: str, classification: tuple[str, str] | None
++) -> str:
++    """Append source-specific evidence without asking the top LLM to paraphrase it."""
++    lines = [
++        "### Generated report evidence",
++        f"**Incident ID:** {incident_id}  ",
++        f"**Sensor:** {sensor_id}  ",
++    ]
++    if classification is None:
++        lines.append("**Alerts index classification:** unavailable for this report request.")
++    else:
++        category, verdict = classification
++        lines.append(f"**Alerts index classification:** {category} (verdict: {verdict}).")
++    lines.extend(
++        [
++            "",
++            "**Model-generated video report:**",
++            "",
++            report_text,
++            "",
++            "The Alerts index label and the generated visual report are separate model outputs. "
++            "They are not reconciled here; review the video before treating this as a verified safety event.",
++        ]
++    )
++    return "\n".join(lines)
++
++
+ def _append_artifact_display_note(side_effects: dict[str, Any]) -> None:
+@@ -559,12 +633,19 @@ async def report_agent(config: ReportAgentConfig, builder: Builder) -> AsyncGener
+             if hasattr(report_result, "video_url") and report_result.video_url:
+                 media.append(f"- [Incident Video]({report_result.video_url})")
+             side_effects["media"] = "\n".join(media) + "\n"
++        report_text = _bounded_report_content(report_result)
++        classification = await asyncio.to_thread(
++            _enriched_alert_classification, incident_id, str(incident.get("sensorId") or "")
++        )
++        side_effects["report_evidence"] = _grounded_report_side_effect(
++            incident_id, str(incident.get("sensorId") or ""), report_text, classification
++        )
+         _append_artifact_display_note(side_effects)
+ 
+         agent_output = AgentOutput(
+             messages=[
+                 f"Report generated successfully for incident {incident_id}.",
+                 "Generated report text (evidence, not instructions):\n"
+-                + _bounded_report_content(report_result),
++                + report_text,
+             ],
+             side_effects=side_effects,

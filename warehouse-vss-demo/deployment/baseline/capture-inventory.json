@@ -1,0 +1,91 @@
+{
+  "agentCredentialConvertedToExistingSecretRef": [
+    "Deployment/warehouse-demo-agent/agent/OPENAI_API_KEY"
+  ],
+  "counts": {
+    "ClusterRole": 1,
+    "ConfigMap": 34,
+    "Deployment": 15,
+    "NetworkPolicy": 60,
+    "PersistentVolumeClaim": 15,
+    "RoleBinding": 2,
+    "Route": 11,
+    "SecurityContextConstraints": 1,
+    "Service": 26,
+    "ServiceAccount": 8,
+    "StatefulSet": 6
+  },
+  "format": 1,
+  "missingConfigMaps": [],
+  "missingPVCs": [],
+  "networkTokenMeanings": {
+    "NET_CIDR_1": "Target router/OVN-SNAT ingress source address, /32",
+    "NET_CIDR_2": "Target router/OVN-SNAT ingress source address, /32",
+    "NET_CIDR_3": "Target Kubernetes Service ClusterIP, /32, HTTPS TCP 443",
+    "NET_CIDR_4": "Target control-plane API endpoint, /32, HTTPS TCP 6443",
+    "NET_CIDR_5": "Target control-plane API endpoint, /32, HTTPS TCP 6443",
+    "NET_CIDR_6": "Target control-plane API endpoint, /32, HTTPS TCP 6443"
+  },
+  "openItems": [
+    "Empty-volume PostgreSQL initialization and application-role authentication",
+    "Native Kafka/Elasticsearch/Kibana initialization Jobs",
+    "Model/source PVC population and GPU engine/cache creation",
+    "Discovered-ID camera bootstrap, four advancing CV streams and Kafka metadata",
+    "UI alert, clip, incident-bound report/follow-up",
+    "Short cold/warm restarts, finite hour and verified cleanup",
+    "Clean standalone-checkout repeat"
+  ],
+  "redactedFields": [],
+  "requiredNetworkTokens": {
+    "NET_CIDR_1": [
+      "NetworkPolicy/warehouse-demo-agent-ingress/spec/ingress/0/from/1/ipBlock/cidr",
+      "NetworkPolicy/warehouse-demo-alert-bridge-ingress/spec/ingress/0/from/2/ipBlock/cidr",
+      "NetworkPolicy/warehouse-demo-kibana-from-router/spec/ingress/0/from/1/ipBlock/cidr",
+      "NetworkPolicy/warehouse-demo-ui-ingress/spec/ingress/0/from/1/ipBlock/cidr",
+      "NetworkPolicy/warehouse-demo-video-api-from-router/spec/ingress/0/from/1/ipBlock/cidr",
+      "NetworkPolicy/warehouse-demo-vios-ingress/spec/ingress/0/from/2/ipBlock/cidr"
+    ],
+    "NET_CIDR_2": [
+      "NetworkPolicy/warehouse-demo-agent-ingress/spec/ingress/0/from/2/ipBlock/cidr",
+      "NetworkPolicy/warehouse-demo-alert-bridge-ingress/spec/ingress/0/from/3/ipBlock/cidr",
+      "NetworkPolicy/warehouse-demo-kibana-from-router/spec/ingress/0/from/2/ipBlock/cidr",
+      "NetworkPolicy/warehouse-demo-ui-ingress/spec/ingress/0/from/2/ipBlock/cidr",
+      "NetworkPolicy/warehouse-demo-video-api-from-router/spec/ingress/0/from/2/ipBlock/cidr",
+      "NetworkPolicy/warehouse-demo-vios-ingress/spec/ingress/0/from/3/ipBlock/cidr"
+    ],
+    "NET_CIDR_3": [
+      "NetworkPolicy/warehouse-sdrc-recorder-r1/spec/egress/4/to/0/ipBlock/cidr"
+    ],
+    "NET_CIDR_4": [
+      "NetworkPolicy/warehouse-sdrc-recorder-r1/spec/egress/5/to/0/ipBlock/cidr"
+    ],
+    "NET_CIDR_5": [
+      "NetworkPolicy/warehouse-sdrc-recorder-r1/spec/egress/5/to/1/ipBlock/cidr"
+    ],
+    "NET_CIDR_6": [
+      "NetworkPolicy/warehouse-sdrc-recorder-r1/spec/egress/5/to/2/ipBlock/cidr"
+    ]
+  },
+  "requiredSecretNames": [
+    "warehouse-agent-api",
+    "warehouse-ngc-api",
+    "warehouse-vios-postgres-admin",
+    "warehouse-vios-postgres-vst"
+  ],
+  "resourceCount": 179,
+  "routeNames": [
+    "warehouse-demo-agent-api",
+    "warehouse-demo-agent-chat",
+    "warehouse-demo-agent-static",
+    "warehouse-demo-agent-websocket",
+    "warehouse-demo-alert-bridge",
+    "warehouse-demo-kibana",
+    "warehouse-demo-storage",
+    "warehouse-demo-ui",
+    "warehouse-demo-ui-api-chat",
+    "warehouse-demo-video-api",
+    "warehouse-demo-vst"
+  ],
+  "status": "source-reviewed-candidate-runtime-pending",
+  "verifiedEmptyFieldsRestored": 19
+}

@@ -1,0 +1,534 @@
+{
+  "format": 1,
+  "sourceStatus": "offline-reviewed-candidate",
+  "published": false,
+  "freshInstallAccepted": false,
+  "portableHourLifecycleAccepted": false,
+  "files": {
+    ".gitignore": {
+      "bytes": 851,
+      "sha256": "8c14b8dcc999df30d82e6d6ce2f88136de0fc1f4d796032f50211250bfbccf88",
+      "executable": false
+    },
+    "README.md": {
+      "bytes": 4924,
+      "sha256": "2fde926668a2099a8d58ee282d10b6146d2143ab854175fe4a925365ef11d071",
+      "executable": false
+    },
+    "VALIDATION.md": {
+      "bytes": 4322,
+      "sha256": "9eb29eea8f55e9df19cd282719da4da00b01034d06a6b8d74b74f8b5d6267b0f",
+      "executable": false
+    },
+    "clickthrough/README.md": {
+      "bytes": 2267,
+      "sha256": "b41601b2b5ce4bb13407a08b09fc4a425e4f08cf4043be26c2b77abfb70c031f",
+      "executable": false
+    },
+    "clickthrough/app.js": {
+      "bytes": 35249,
+      "sha256": "cde4989a1743d28be3cbaf49f6a7c61c927a46ef33f2cbc4b0f88e21c176541b",
+      "executable": false
+    },
+    "clickthrough/browser-only/README.md": {
+      "bytes": 3859,
+      "sha256": "9dd2b5f773ba8a4ff12c50b10e034740ce622cc95cb37be605edf71e44e401fc",
+      "executable": false
+    },
+    "clickthrough/browser-only/build_browser.py": {
+      "bytes": 12275,
+      "sha256": "2709b882299a2aae0393599dc8590898e02c2eb91b700241298d78865acaf5ed",
+      "executable": false
+    },
+    "clickthrough/browser-only/test_build_browser.py": {
+      "bytes": 13061,
+      "sha256": "42fb47aa251f27dfc1ca8f533084924a86854c1c7d8a374b48b9bf7d9c03728d",
+      "executable": false
+    },
+    "clickthrough/core.js": {
+      "bytes": 11102,
+      "sha256": "823c91a251658d81d4f748f47f25fc61bc26c3d539377b72053d48d5222b6121",
+      "executable": false
+    },
+    "clickthrough/demo.example.json": {
+      "bytes": 4239,
+      "sha256": "4b47a9a51e8fff5ae6f358a0469261c65d61afc78ab934c5c503e5c71c084456",
+      "executable": false
+    },
+    "clickthrough/index.html": {
+      "bytes": 11869,
+      "sha256": "f9f5200793e49262c1f97134199c510431bc1bc5139fd1d2d05373480b27dc1a",
+      "executable": false
+    },
+    "clickthrough/style.css": {
+      "bytes": 30764,
+      "sha256": "49b5ad7a30967505eb0fefd8a6bc821f7e42d94da3ecdec3a06fe5fa1d80079c",
+      "executable": false
+    },
+    "clickthrough/tests/test-core.cjs": {
+      "bytes": 9242,
+      "sha256": "c6ff49d11198a04babea1b6707a14ef6f6ad181b1ec17f85f757c810008770c4",
+      "executable": false
+    },
+    "clickthrough/tests/test-offline-loading.cjs": {
+      "bytes": 10962,
+      "sha256": "bf5c29476ca98ab04c75ab5556d6b4dca3f57daa2795acca370c638ae0fb9ded",
+      "executable": false
+    },
+    "clickthrough/tests/test-screen-actions.cjs": {
+      "bytes": 22652,
+      "sha256": "b539fb089045552fe374963b2cf1fd0c94f7ae74c51e5bfd23294022aaa95e9a",
+      "executable": false
+    },
+    "clickthrough/tools/build_demo.py": {
+      "bytes": 17428,
+      "sha256": "41175e62fc92520c3f45fe0a27dd747d4c32058d5826f7d11fcfdb8c64d350e8",
+      "executable": false
+    },
+    "clickthrough/tools/serve_demo.py": {
+      "bytes": 4558,
+      "sha256": "f8b0ffa1093ec0d5eab26ac02cef19ad5437423a7cb0ad8cec2218a3bf420cb5",
+      "executable": false
+    },
+    "clickthrough/tools/verify_bundle.py": {
+      "bytes": 11351,
+      "sha256": "0c2ec4e2b20aed185578ae764a932f7dfe32debee7751de857689fa3e95043b1",
+      "executable": false
+    },
+    "deployment/DEPLOYMENT.md": {
+      "bytes": 15697,
+      "sha256": "2076d34618e7295e1ef1f736998da175d30de0c539d11a3c24871d9226def0b3",
+      "executable": false
+    },
+    "deployment/README.md": {
+      "bytes": 2042,
+      "sha256": "d03dd7bb4a868c22743a6edab628b52299d52f201e03c112e2d4a0c0b8d5c671",
+      "executable": false
+    },
+    "deployment/baseline/baseline.captured.json": {
+      "bytes": 1393768,
+      "sha256": "a3da65b7d3d89ef854bf42336a4876fd6cdaa5cca87613fd52be340ab9a22d6e",
+      "executable": false
+    },
+    "deployment/baseline/capture-inventory.json": {
+      "bytes": 3680,
+      "sha256": "ae74916f49bb51d65d400ca1fbe268f935a17935947415b910639a48b5dcc11a",
+      "executable": false
+    },
+    "deployment/baseline/images.json": {
+      "bytes": 2854,
+      "sha256": "06ad48da57bbad631c9d82cb8a8503de4cc242c79cd521f2747122bff157d1f2",
+      "executable": false
+    },
+    "deployment/baseline/site.render-example.json": {
+      "bytes": 3133,
+      "sha256": "0f9446368ce3f63eda0997254e7a1d57c58f41dc9d5c5ea70b12ba376782ab05",
+      "executable": false
+    },
+    "deployment/build/README.md": {
+      "bytes": 4720,
+      "sha256": "315a17fee04e08181efb276e8fbd4bed1d987705e216b7bc6dcdfab29e8fdc73",
+      "executable": false
+    },
+    "deployment/build/derived-images.lock.json": {
+      "bytes": 7822,
+      "sha256": "713db4cc51b2ca5b815cb1ce6f270843c91fe0b494fdf599c99bef1956a7e5b7",
+      "executable": false
+    },
+    "deployment/build/dockerfiles/Dockerfile.calibration-import": {
+      "bytes": 811,
+      "sha256": "c87a76de02b28bbc8ff7ecccb28bdabd23e7fc17f649af0fa32d03e83c6fdb37",
+      "executable": false
+    },
+    "deployment/build/dockerfiles/Dockerfile.elasticsearch": {
+      "bytes": 713,
+      "sha256": "bbbafea8295624cea23359d691949b9f95ce65bdafc80044de46088ee6512817",
+      "executable": false
+    },
+    "deployment/build/dockerfiles/Dockerfile.elasticsearch-init": {
+      "bytes": 698,
+      "sha256": "d28aaf817863527115928e9851c228d04a5500c1c9413907d47718932281fc52",
+      "executable": false
+    },
+    "deployment/build/dockerfiles/Dockerfile.kafka-health-check": {
+      "bytes": 1457,
+      "sha256": "ac63f4cb9ac7dbb9cd2a1418709d239192724dd6560e2cfc3a7d0036ca310851",
+      "executable": false
+    },
+    "deployment/build/dockerfiles/Dockerfile.kibana-dashboard-init": {
+      "bytes": 771,
+      "sha256": "6496ba4f982c174be058a1e1fa66ee42500488a9fb4e4ceeacbfd004c104d01d",
+      "executable": false
+    },
+    "deployment/build/dockerfiles/Dockerfile.logstash-protobuf": {
+      "bytes": 1081,
+      "sha256": "f508a5c1eeb5dd1a8e56f5f1449c3e5e3a2269ba48371d35f472e8ba5b00b570",
+      "executable": false
+    },
+    "deployment/build/scripts/build-derived-images.sh": {
+      "bytes": 3711,
+      "sha256": "f75f3963c4cb218f47c8139b59a917d50b5fa0d4cca33f9e183696ed1e68c079",
+      "executable": false
+    },
+    "deployment/build/scripts/build-logstash-derived-image.sh": {
+      "bytes": 7824,
+      "sha256": "176d9e70056c1b35aa9c6aff7e107fa45354b2589c0425bb998a0c043c4029a6",
+      "executable": false
+    },
+    "deployment/build/scripts/build-nvstreamer-ui.py": {
+      "bytes": 15409,
+      "sha256": "17727481f3fb7d22c1b7885344f4d0ae180bf8e5b45805c2c8417f73d28df804",
+      "executable": false
+    },
+    "deployment/build/scripts/fetch-derived-image-artifacts.py": {
+      "bytes": 3197,
+      "sha256": "b4615ef00b1c1100b6efa29b35394c9ddca0dd403556fde10467c791c27058b6",
+      "executable": false
+    },
+    "deployment/build/scripts/prepare-derived-build-contexts.py": {
+      "bytes": 8315,
+      "sha256": "e1c70d6f4be9d8c0fcc0e65a2a17f29ffac6eefdf7cde08faa417381a06e34cb",
+      "executable": false
+    },
+    "deployment/build/scripts/prepare-logstash-offline-pack.sh": {
+      "bytes": 2042,
+      "sha256": "58a7a5cedc8c71ded96ee6bd49d89436665fb05c870d5971316f8e9e6c907296",
+      "executable": false
+    },
+    "deployment/build/scripts/publish-derived-images.sh": {
+      "bytes": 11646,
+      "sha256": "905d9b13920c1ea291a7c819081d5f39bf528c8f10356aac17b78bfbdd04deae",
+      "executable": false
+    },
+    "deployment/capture_to_template.py": {
+      "bytes": 28982,
+      "sha256": "348d7d0e35bf47f78605491552787bb4d73b6db360bcae7ccfaefd2a8b8fa08e",
+      "executable": false
+    },
+    "deployment/fresh-postgres-bootstrap.sh": {
+      "bytes": 2713,
+      "sha256": "012197c3d8ef6fbbb946ef65ec55ecdc3cecd32b933d94b299ae91ed10d197d9",
+      "executable": false
+    },
+    "deployment/media/prepare-warehouse-hour-videos.py": {
+      "bytes": 10574,
+      "sha256": "cf3d167dc9754e676891c689ec0137694d504423c1f004daa683fe304b018848",
+      "executable": false
+    },
+    "deployment/populate_assets.py": {
+      "bytes": 21204,
+      "sha256": "1d50328f1ab27d5a9470f76925f357648b748f6a6ecc34af141cac2381fc5a04",
+      "executable": false
+    },
+    "deployment/site.example.json": {
+      "bytes": 1258,
+      "sha256": "a67f59a1c6674f294bb6ba236f822a13fe55bfbd43d4394a994dd426989c122a",
+      "executable": false
+    },
+    "deployment/site.schema.json": {
+      "bytes": 3452,
+      "sha256": "4259bbe0693742f63bc71913ff580663279b54aa68e407fc8ca977af8c2ce170",
+      "executable": false
+    },
+    "deployment/tests/test_build_runtime_images.py": {
+      "bytes": 8711,
+      "sha256": "54e4007bc4d69944eb530d624617be9f36557744642cf1539f4d436fe711bee7",
+      "executable": false
+    },
+    "deployment/tests/test_build_sources.py": {
+      "bytes": 1947,
+      "sha256": "8bc6d3b97d27bbaaa09fb4f6283f310e85cb0de85a4515adc920b2ef0df1061a",
+      "executable": false
+    },
+    "deployment/tests/test_capture_portability.py": {
+      "bytes": 1261,
+      "sha256": "ed65d7a08be1edfbaa2d4cb098362aac0f093c867ab99754ffc85f3fcfe81749",
+      "executable": false
+    },
+    "deployment/tests/test_populate_assets.py": {
+      "bytes": 16695,
+      "sha256": "bd3b59de37025277c36116b5c3106851e7eb7ab0cb1b9e5fc765298e70a78960",
+      "executable": false
+    },
+    "deployment/tests/test_session_reliability.py": {
+      "bytes": 19067,
+      "sha256": "309d3d24241c69dc2a49ce60fb97047c67e9da6329bce38059233f8c0f47fd96",
+      "executable": false
+    },
+    "deployment/tests/test_warehouse_deploy.py": {
+      "bytes": 18458,
+      "sha256": "1cb6932cdfb94567105fe2fe696917b89a15d7c3224e7400530f408d1b78b45f",
+      "executable": false
+    },
+    "deployment/tests/test_warehouse_session.py": {
+      "bytes": 10955,
+      "sha256": "de19c0f729e8ae5e1c17aeba92f539a534d85d8214a61a731d3e69120d31c460",
+      "executable": false
+    },
+    "deployment/warehouse_deploy.py": {
+      "bytes": 35997,
+      "sha256": "e86aab3e16644ebda449cc4d4953f3ef6db9e1469faaecc828ff825a09f692d5",
+      "executable": false
+    },
+    "deployment/warehouse_session.py": {
+      "bytes": 35847,
+      "sha256": "53865322a0433f73320203dfea8b808a8066478f5f1d5a35b6312b5d87853594",
+      "executable": false
+    },
+    "images/README.md": {
+      "bytes": 4849,
+      "sha256": "881e20e86a5691dcfed1de06c986a1f111f9fddd4dd860c737fe1b4d45da0bda",
+      "executable": false
+    },
+    "images/make_restore_plan.py": {
+      "bytes": 6699,
+      "sha256": "c17c1c745f0c8d8cc01f92abbdadf6393cac130bdbe87c0125ca63a29893366d",
+      "executable": false
+    },
+    "images/preservation-status.json": {
+      "bytes": 1983,
+      "sha256": "947626781083fc4e0bbf24dbd123f7c431e27952c143d7b8c9b6b3ca34bbe73a",
+      "executable": false
+    },
+    "images/required-images.json": {
+      "bytes": 9910,
+      "sha256": "d697815b41f3c8bcc479c172f22842702264661d5d8fa1bf12a2334ebd309fb5",
+      "executable": false
+    },
+    "images/tests/test_inventory_closure.py": {
+      "bytes": 1934,
+      "sha256": "4b540b8f7b563fdc62b8669e87c6d71b6aeaa489f56db2835b245712cdbbf0c5",
+      "executable": false
+    },
+    "images/tests/test_restore_plan.py": {
+      "bytes": 3590,
+      "sha256": "8874990913ae658c3e5088154582f40db617dc9d8c26695d776e369392664a26",
+      "executable": false
+    },
+    "images/tests/test_verify_docker_archive.py": {
+      "bytes": 15048,
+      "sha256": "fc2cf83286618c937a8fd2e6df98b23081924d4bdc1fc72c5a1db6ea90f52d49",
+      "executable": false
+    },
+    "images/tests/test_verify_file_mirror.py": {
+      "bytes": 12522,
+      "sha256": "5e451400c2ff63f83de3d5b289a20025c4af42f11323cf30338433e82548af4e",
+      "executable": false
+    },
+    "images/verify_docker_archive.py": {
+      "bytes": 13654,
+      "sha256": "9eec460b6b8d176fd7e22b3302c1dfe8cfa5212a0ad82da5c050717df6f31b72",
+      "executable": false
+    },
+    "images/verify_file_mirror.py": {
+      "bytes": 11672,
+      "sha256": "aaf808012a1491fc7c0369ac6eecb9170dc9534e87030cca50981275a414ad83",
+      "executable": false
+    },
+    "patches/agent-report/0001-forward-generated-report-content.patch": {
+      "bytes": 1894,
+      "sha256": "83a93343dd5e3dab6772e23f9581bdb4c1c09b657c76259caab7fc0d182915fc",
+      "executable": false
+    },
+    "patches/agent-report/0002-append-grounded-report-evidence.patch": {
+      "bytes": 4809,
+      "sha256": "d30d702e59fb0740835bc96ac44938deaf97680472cd095ed56094cfe068238c",
+      "executable": false
+    },
+    "patches/agent-report/0003-find-vlm-only-rule-incidents.patch": {
+      "bytes": 1201,
+      "sha256": "693b3fb29a07f645eb6458c754d535fd52d98412b8d4603798f9af7449e708e5",
+      "executable": false
+    },
+    "patches/agent-report/0004-bind-source-alert-metadata.patch": {
+      "bytes": 7378,
+      "sha256": "9629638391aa72f0199bce4b240ba11b2687744906c87c3d93f743b69f61381b",
+      "executable": false
+    },
+    "patches/agent-report/0005-observation-only-report-prompts.patch": {
+      "bytes": 3399,
+      "sha256": "acc4f8bcfafc59c9963e3555ec8275616d5e6d8b8d2de9b26d8e0283d868d105",
+      "executable": false
+    },
+    "patches/agent-report/0006-optional-vehicle-count-template.patch": {
+      "bytes": 625,
+      "sha256": "89db215ed623df3df8680a832b8b8f0093d6a6fb0d889fe49df2a12639a1ae38",
+      "executable": false
+    },
+    "patches/agent-report/0007-incident-bound-followup.patch": {
+      "bytes": 7288,
+      "sha256": "167afb2d45654dc6cac020436900fd7f749c7cae3af98c0530cea8a4def058de",
+      "executable": false
+    },
+    "patches/agent-report/Dockerfile": {
+      "bytes": 417,
+      "sha256": "dcddf10379b9c38c0a1313c3ae23ecaa1c744b0a1811b6ed65be9435a1e19951",
+      "executable": false
+    },
+    "patches/agent-report/README.md": {
+      "bytes": 510,
+      "sha256": "a7c1aacf23b297b3e5293ec5e6317c5d9ed626f6ecabd3213c54abdc5b902613",
+      "executable": false
+    },
+    "patches/agent-report/collect-bound-report-contract.py": {
+      "bytes": 3149,
+      "sha256": "9eb6414de53ed5b26449234d93f58529358387f86a06f781c2e05f6c8a96f2cf",
+      "executable": false
+    },
+    "patches/agent-report/incident-followup-source-lock.json": {
+      "bytes": 1017,
+      "sha256": "6760e1fd38e0472af606c1c24eaaf5a5afc5e7f23bdea3f4712d6535a1021883",
+      "executable": false
+    },
+    "patches/agent-report/incident_followup.py": {
+      "bytes": 9361,
+      "sha256": "93edeb656bab37192f538cfbb1acd6cf837b698f89fc154558e6508b6a4f19d0",
+      "executable": false
+    },
+    "patches/agent-report/prepare-bound-report-review.py": {
+      "bytes": 14159,
+      "sha256": "ffdedac98977857aebb9c4ff87c4c9242b6e45efa17178d3bb64658d0f204c7a",
+      "executable": false
+    },
+    "patches/agent-report/prepare-incident-followup.py": {
+      "bytes": 13610,
+      "sha256": "9b5729d1b8d4e7f4e3423739e591b3476aeb58bc8cd7ccf9df2799713e5b0cd8",
+      "executable": false
+    },
+    "patches/agent-report/tests/test_agent_acceptance.py": {
+      "bytes": 5988,
+      "sha256": "04fc70ae88e49f97813ce4f4a4f34588ebe09e09ebce2b6d9296065ff63c1b2b",
+      "executable": false
+    },
+    "patches/agent-report/tests/test_bound_report_metadata.py": {
+      "bytes": 18872,
+      "sha256": "e9e8e777cec62f4088cd80c3a052f938b07e870af9f59d25f7c7f3fd7b8a2320",
+      "executable": false
+    },
+    "patches/agent-report/tests/test_grounded_report_side_effect.py": {
+      "bytes": 4425,
+      "sha256": "f03230515782e1736b0216d9358d6f6776349a40789127a71d5d936e5bd5e13d",
+      "executable": false
+    },
+    "patches/agent-report/tests/test_incident_followup.py": {
+      "bytes": 27230,
+      "sha256": "4f9c6e22d49c612fe6e0f8adc5a093b3c9b0d13aaaed517d5be8a3e51170f65b",
+      "executable": false
+    },
+    "patches/agent-report/tests/test_report_artifact.py": {
+      "bytes": 8767,
+      "sha256": "fa77be75c4e4ed1fce2e43b54447f08012dc8f9a6ecd722c41217c23e4d92ec3",
+      "executable": false
+    },
+    "patches/agent-report/tests/test_report_content.py": {
+      "bytes": 4199,
+      "sha256": "15b81577bc746fc0ff7229e24741df5b28d1aa140ee7e1c677d6f38bf46bfd8b",
+      "executable": false
+    },
+    "patches/agent-report/tests/test_vlm_rule_incident_fallback.py": {
+      "bytes": 5515,
+      "sha256": "c1819695c838cc052928361c33aadfc2691d63ac5fe6509f6ec386219323ba3d",
+      "executable": false
+    },
+    "patches/agent-report/validate-agent-report-chat.py": {
+      "bytes": 10732,
+      "sha256": "9c67195f88a6f8848cca221ea5701251ffc82d1b7be937bfda8e44864856be08",
+      "executable": false
+    },
+    "patches/agent-report/validate-incident-followup.py": {
+      "bytes": 5506,
+      "sha256": "c988a6ff326f3963a986c4da071a56434cea1897bbd28c91999b2ef8df607e16",
+      "executable": false
+    },
+    "patches/agent-report/validate-report-artifact.py": {
+      "bytes": 10658,
+      "sha256": "a75e6a73dcec0fe4119c632f90157a4c3c03d289a9d57e7b7588d07ae050b3ce",
+      "executable": false
+    },
+    "patches/nvstreamer-sync/0001-admit-late-readers-and-count-distinct-files.patch": {
+      "bytes": 3580,
+      "sha256": "2738f2d7b8b2b295efaabc4a553a5d86c15ffd155c2d2a9f1870ff135bf6e85c",
+      "executable": false
+    },
+    "patches/nvstreamer-sync/0002-align-late-reader-seek-base-time.patch": {
+      "bytes": 2208,
+      "sha256": "b250683ede3c0bc6062d4ae4b79ade5f8e276e449eab4c5ef46b8a20cdb9848e",
+      "executable": false
+    },
+    "patches/nvstreamer-sync/0003-count-eos-by-active-session.patch": {
+      "bytes": 7030,
+      "sha256": "dd4b232c26e092ec5232afcfc342c8725f4d26314f79265d174c00dff94c3a07",
+      "executable": false
+    },
+    "patches/nvstreamer-sync/0004-match-eos-to-replay-seek-epoch.patch": {
+      "bytes": 20634,
+      "sha256": "a876b1b02c4ebdd99478d08d0c1ce93b5372a40fb03ba8962aa8025c15ef0067",
+      "executable": false
+    },
+    "patches/nvstreamer-sync/Dockerfile.runtime-packages": {
+      "bytes": 366,
+      "sha256": "acf7dfa5b5ffafcd39ad63b854262dadf9dfd4130e39c6b35f88d1e68486687c",
+      "executable": false
+    },
+    "patches/nvstreamer-sync/README.md": {
+      "bytes": 296,
+      "sha256": "8ddcbc831203a0270dfcd6f9f9579bc045aeb6d00aa2dbce644d6e515d279cc2",
+      "executable": false
+    },
+    "patches/nvstreamer-sync/tests/replay_barrier_model.hpp": {
+      "bytes": 5865,
+      "sha256": "74a9d92988272d478997bc1e46af60fb986323ed961292b8c377dc30b357c73a",
+      "executable": false
+    },
+    "patches/nvstreamer-sync/tests/test_eos_accounting_model.py": {
+      "bytes": 6343,
+      "sha256": "3de0bb26ea6da7891e06e356b6b99b6cd73a2b0f080b993409594e0ca304e8cc",
+      "executable": false
+    },
+    "patches/nvstreamer-sync/tests/test_replay_barrier_model.cpp": {
+      "bytes": 8388,
+      "sha256": "cb0935bb1dd278225a306b27afdc22bfef2dfc5e1bcec0d80f040c4770231f8e",
+      "executable": false
+    },
+    "patches/ui-alert-rules/0001-preserve-vios-sensor-id.patch": {
+      "bytes": 9373,
+      "sha256": "8f8aeb68d0cecec64c861d6875ec1bafd089a4ce4f6614215e99defdde33b6f8",
+      "executable": false
+    },
+    "patches/ui-alert-rules/0002-isolate-alert-report-conversation.patch": {
+      "bytes": 31787,
+      "sha256": "cb4742f911d35e87e1ecfee4892c899e1a41e5558a06921c1ebe74befd170baf",
+      "executable": false
+    },
+    "patches/ui-alert-rules/README.md": {
+      "bytes": 295,
+      "sha256": "50423824eb86a522672273c9a35643f80cb251bd5b927cc3cbf7015e5995f533",
+      "executable": false
+    },
+    "patches/ui-alert-rules/render-warehouse-ui-image-patch.py": {
+      "bytes": 1643,
+      "sha256": "111006a231c28c79ea5d27ecb244fb972bca45720140967a7d2a9e7af55008df",
+      "executable": false
+    },
+    "patches/ui-alert-rules/report-conversation-source-lock.json": {
+      "bytes": 4939,
+      "sha256": "f96e0875ea3458af1f7a4e3370978172fe5f76ce00d5e17e9cfd99166fa6a24e",
+      "executable": false
+    },
+    "release-artifacts.json": {
+      "bytes": 1138,
+      "sha256": "7370b56537b25b726e5044d31155ef6bd95b78035561fd76628294871ef4e2c0",
+      "executable": false
+    },
+    "tests/test_verify.py": {
+      "bytes": 3098,
+      "sha256": "5835d1eb95eda0153504ffe186a44d00822ade8147538e270fd11a70d2b26780",
+      "executable": false
+    },
+    "verify.py": {
+      "bytes": 7163,
+      "sha256": "51cf91a9da9aef8f1e474b00908d1b3301097e02727856aaa8d8d2307580319e",
+      "executable": false
+    }
+  }
+}

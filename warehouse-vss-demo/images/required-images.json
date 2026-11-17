@@ -1,0 +1,157 @@
+{
+  "format": 1,
+  "scope": "warehouse-deployment-and-media-population",
+  "platform": "linux/amd64",
+  "images": [
+    {
+      "packagePin": "busybox@sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0",
+      "platformDigest": "sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0",
+      "sourceIndexDigest": null,
+      "fileRepository": "warehouse-preserved/busybox"
+    },
+    {
+      "packagePin": "busybox@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0",
+      "platformDigest": "sha256:7a3ebe5bfd1a4a19797d20b0c0bb39d44393e9a03fd852c0865b0f540d868df0",
+      "sourceIndexDigest": "sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0",
+      "fileRepository": "warehouse-preserved/busybox"
+    },
+    {
+      "packagePin": "confluentinc/cp-kafka@sha256:acbbf674f2ed40e5d0a8ca51beb0f00692c866fc22b5ce06f8cadbdc54cd4436",
+      "platformDigest": "sha256:e1b1d853560fd5b849eb05bdb21b4b64fab89b7f44c712bbbc26b29f35ed1492",
+      "sourceIndexDigest": "sha256:acbbf674f2ed40e5d0a8ca51beb0f00692c866fc22b5ce06f8cadbdc54cd4436",
+      "fileRepository": "warehouse-preserved/cp-kafka"
+    },
+    {
+      "packagePin": "docker.elastic.co/kibana/kibana@sha256:36301dc49650e47484b23803d60f78e0ac763ab4d7edab6c75c1f54a186d5f9d",
+      "platformDigest": "sha256:b53e9fa4de3b95f5463ed4ba4abf6d33c98ffd7a50a9f29b10b02e4ea27e19fd",
+      "sourceIndexDigest": "sha256:36301dc49650e47484b23803d60f78e0ac763ab4d7edab6c75c1f54a186d5f9d",
+      "fileRepository": "warehouse-preserved/kibana"
+    },
+    {
+      "packagePin": "nvcr.io/nim/nvidia/nvidia-nemotron-nano-9b-v2@sha256:a2f4a5aefe7dd0ff29bfd8d7081ce4977337d1b12081361af7b6283ff9a406b2",
+      "platformDigest": "sha256:bdd975848d5d4e2ae1f701a9b78ff7f6ed7de56498f9c2f250d7d98484b0d40f",
+      "sourceIndexDigest": "sha256:a2f4a5aefe7dd0ff29bfd8d7081ce4977337d1b12081361af7b6283ff9a406b2",
+      "fileRepository": "warehouse-preserved/nvidia-nemotron-nano-9b-v2"
+    },
+    {
+      "packagePin": "nvcr.io/nvidia/vss-core/sdr-mw-l@sha256:7f98d296295a60ccd59c23b4c23ff0c72bfa01a669279c43896ed8d196f14069",
+      "platformDigest": "sha256:49cdff1ffc5314b82e2339ee28c67bd5055dc6f66ea9fa8fcccb0780dc8cd150",
+      "sourceIndexDigest": "sha256:7f98d296295a60ccd59c23b4c23ff0c72bfa01a669279c43896ed8d196f14069",
+      "fileRepository": "warehouse-preserved/sdr-mw-l"
+    },
+    {
+      "packagePin": "nvcr.io/nvidia/vss-core/vss-agent:3.2.1@sha256:b7f3246aaf355ebf96e91a40b2f0abc5dea7e330e7bf9a7cf726107b560c3ac1",
+      "platformDigest": "sha256:fdc129c9281d840052645958abe9a10d0482d88b1bb3d88587bba894ca5eeba2",
+      "sourceIndexDigest": "sha256:b7f3246aaf355ebf96e91a40b2f0abc5dea7e330e7bf9a7cf726107b560c3ac1",
+      "fileRepository": "warehouse-preserved/vss-agent"
+    },
+    {
+      "packagePin": "nvcr.io/nvidia/vss-core/vss-alert-verification:3.2.0@sha256:a36745d216ca2396acb2491c75f3af05884e207e782c445e76b06df4976aa275",
+      "platformDigest": "sha256:22090dc1c6741e1829a79fc04e2bb151fead6f8ec8a238ada6eec5a24a1dccf4",
+      "sourceIndexDigest": "sha256:a36745d216ca2396acb2491c75f3af05884e207e782c445e76b06df4976aa275",
+      "fileRepository": "warehouse-preserved/vss-alert-verification"
+    },
+    {
+      "packagePin": "nvcr.io/nvidia/vss-core/vss-behavior-analytics@sha256:f3fd84f9c9f63b9d00298161929b71c73f36b301782d58bf810e0583843c9fa6",
+      "platformDigest": "sha256:1dfb51a6592a4fe804487309193c651466258f7b6e90d30fcf403f28374552b1",
+      "sourceIndexDigest": "sha256:f3fd84f9c9f63b9d00298161929b71c73f36b301782d58bf810e0583843c9fa6",
+      "fileRepository": "warehouse-preserved/vss-behavior-analytics"
+    },
+    {
+      "packagePin": "nvcr.io/nvidia/vss-core/vss-configurator@sha256:35e3e31e7d9e62b298d6dbcb91244d54b0686845227f26e46f886493e9fe4504",
+      "platformDigest": "sha256:6421bfb4c3a94ecb0c19142f28ae2d0dba9a3292862db87bf6b6cd40cc5fc9a6",
+      "sourceIndexDigest": "sha256:35e3e31e7d9e62b298d6dbcb91244d54b0686845227f26e46f886493e9fe4504",
+      "fileRepository": "warehouse-preserved/vss-configurator"
+    },
+    {
+      "packagePin": "nvcr.io/nvidia/vss-core/vss-rt-cv@sha256:1a8b9879686f21cb6b9589d6139b5ac2eb960f1520aa3b4bb5f079d05fee9458",
+      "platformDigest": "sha256:a4abe74e7fe8d41e95dfc45655612137163652c4d1ee5e8a0faa6d9158440003",
+      "sourceIndexDigest": "sha256:1a8b9879686f21cb6b9589d6139b5ac2eb960f1520aa3b4bb5f079d05fee9458",
+      "fileRepository": "warehouse-preserved/vss-rt-cv"
+    },
+    {
+      "packagePin": "nvcr.io/nvidia/vss-core/vss-rt-vlm@sha256:5403e0c8fa8b149e7ad15ab1b063b78d610e7a50297dba6ca550ac5cc5ef9504",
+      "platformDigest": "sha256:156bc152242ce38d7913ebb75806b3101e815d93755e371507b1dc5c988746cc",
+      "sourceIndexDigest": "sha256:5403e0c8fa8b149e7ad15ab1b063b78d610e7a50297dba6ca550ac5cc5ef9504",
+      "fileRepository": "warehouse-preserved/vss-rt-vlm"
+    },
+    {
+      "packagePin": "nvcr.io/nvidia/vss-core/vss-video-analytics-api@sha256:2aef26ab5a7394b42da75c53169a9efaf8d2c9278d19de2a214586aafd5e082d",
+      "platformDigest": "sha256:b6b0ccb95c0ef63e5fc8ac288ab06793d160445d974c6e78c6d9bc4baa8a9765",
+      "sourceIndexDigest": "sha256:2aef26ab5a7394b42da75c53169a9efaf8d2c9278d19de2a214586aafd5e082d",
+      "fileRepository": "warehouse-preserved/vss-video-analytics-api"
+    },
+    {
+      "packagePin": "nvcr.io/nvidia/vss-core/vss-vios-ingress:3.2.1@sha256:ecee4b30ab5e76fa5d342ba4c7ade5b3f176dbb2543ccad03d07759fea2a5e47",
+      "platformDigest": "sha256:631c25cd970a1bcdb1e2a32cab834959276ea2da97698b310fd9b4c9e9e57d14",
+      "sourceIndexDigest": "sha256:ecee4b30ab5e76fa5d342ba4c7ade5b3f176dbb2543ccad03d07759fea2a5e47",
+      "fileRepository": "warehouse-preserved/vss-vios-ingress"
+    },
+    {
+      "packagePin": "nvcr.io/nvidia/vss-core/vss-vios-sensor@sha256:6dd443f43acd52b00c449238907f38a936d8e3f5d7fb77765d4ece82b3c24cc7",
+      "platformDigest": "sha256:a1664ea5c07b2cad3d9fdee69861d01d1d1c0cf39e9c7270a0b77457959a12b7",
+      "sourceIndexDigest": "sha256:6dd443f43acd52b00c449238907f38a936d8e3f5d7fb77765d4ece82b3c24cc7",
+      "fileRepository": "warehouse-preserved/vss-vios-sensor"
+    },
+    {
+      "packagePin": "nvcr.io/nvidia/vss-core/vss-vios-streamprocessing@sha256:c59f53396e8390734b6fc3559ffec6929d153499a6ec1410bf477402de983cff",
+      "platformDigest": "sha256:c39392210816ae0f4c41576a6b8b4c2b664c05f7808e25b6fcc95854beffc5c9",
+      "sourceIndexDigest": "sha256:c59f53396e8390734b6fc3559ffec6929d153499a6ec1410bf477402de983cff",
+      "fileRepository": "warehouse-preserved/vss-vios-streamprocessing"
+    },
+    {
+      "packagePin": "postgres@sha256:c7526c0f6c3f30260a563d7bcf8ad778effac59a44f8ffa86678c35418338609",
+      "platformDigest": "sha256:e19c5d72436d4d2f54d00c789775095d02a5dfb1c0f7ea5a243230b1bb46c2bb",
+      "sourceIndexDigest": "sha256:c7526c0f6c3f30260a563d7bcf8ad778effac59a44f8ffa86678c35418338609",
+      "fileRepository": "warehouse-preserved/postgres"
+    },
+    {
+      "packagePin": "redis@sha256:c5e375abb885e6b2021c0377879e4890bf76f9065b8922ffc113f2b226b9fc17",
+      "platformDigest": "sha256:fa40c1366358040d51a42e40113e78b19dfdd6e0acaae3fa3e9395a173fab2bd",
+      "sourceIndexDigest": "sha256:c5e375abb885e6b2021c0377879e4890bf76f9065b8922ffc113f2b226b9fc17",
+      "fileRepository": "warehouse-preserved/redis"
+    },
+    {
+      "packagePin": "registry.example.com/warehouse/warehouse-elasticsearch-init@sha256:39a61be0f0265102279d483e77b0f190ee9cbc0f89ff88151be360bee1c73911",
+      "platformDigest": "sha256:39a61be0f0265102279d483e77b0f190ee9cbc0f89ff88151be360bee1c73911",
+      "sourceIndexDigest": null,
+      "fileRepository": "warehouse-preserved/warehouse-elasticsearch-init"
+    },
+    {
+      "packagePin": "registry.example.com/warehouse/warehouse-elasticsearch@sha256:6c2316c148b6bd1486f8fa20325902c616eb8d84cde671b2d8cafe5d0e7749ce",
+      "platformDigest": "sha256:6c2316c148b6bd1486f8fa20325902c616eb8d84cde671b2d8cafe5d0e7749ce",
+      "sourceIndexDigest": null,
+      "fileRepository": "warehouse-preserved/warehouse-elasticsearch"
+    },
+    {
+      "packagePin": "registry.example.com/warehouse/warehouse-kafka-health-check@sha256:09b17f0a12ee966ef99804a51af8ae0c1d21173852fb88fc5185b01fa468f8a3",
+      "platformDigest": "sha256:09b17f0a12ee966ef99804a51af8ae0c1d21173852fb88fc5185b01fa468f8a3",
+      "sourceIndexDigest": null,
+      "fileRepository": "warehouse-preserved/warehouse-kafka-health-check"
+    },
+    {
+      "packagePin": "registry.example.com/warehouse/warehouse-kibana-dashboard-init@sha256:f1160029a46f12d4c4c149d403bed7138e3cf963227268d4f3e6870a8de29867",
+      "platformDigest": "sha256:f1160029a46f12d4c4c149d403bed7138e3cf963227268d4f3e6870a8de29867",
+      "sourceIndexDigest": null,
+      "fileRepository": "warehouse-preserved/warehouse-kibana-dashboard-init"
+    },
+    {
+      "packagePin": "registry.example.com/warehouse/warehouse-logstash-protobuf@sha256:ebecd9c161e6d8a2a4dd10683b3b13b88cbae71eb72ede225c5877e014874bee",
+      "platformDigest": "sha256:ebecd9c161e6d8a2a4dd10683b3b13b88cbae71eb72ede225c5877e014874bee",
+      "sourceIndexDigest": null,
+      "fileRepository": "warehouse-preserved/warehouse-logstash-protobuf"
+    },
+    {
+      "packagePin": "registry.example.com/warehouse/warehouse-nvstreamer-sync-fix@sha256:3140c66474cf251771cb01bf17fc809f7279f856b6a81ee689fbde0e7581432d",
+      "platformDigest": "sha256:3140c66474cf251771cb01bf17fc809f7279f856b6a81ee689fbde0e7581432d",
+      "sourceIndexDigest": null,
+      "fileRepository": "warehouse-preserved/warehouse-nvstreamer-sync-fix"
+    },
+    {
+      "packagePin": "registry.example.com/warehouse/warehouse-vss-agent-ui@sha256:03208b90fb344d955b8f2e83c71428ce9ab4c4aa843c5dc63e52a4936ede686d",
+      "platformDigest": "sha256:03208b90fb344d955b8f2e83c71428ce9ab4c4aa843c5dc63e52a4936ede686d",
+      "sourceIndexDigest": null,
+      "fileRepository": "warehouse-preserved/warehouse-vss-agent-ui"
+    }
+  ]
+}

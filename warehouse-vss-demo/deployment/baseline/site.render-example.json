@@ -1,0 +1,80 @@
+{
+  "auth": {
+    "imagePullSecrets": [
+      "ngc-pull"
+    ],
+    "secretNames": {
+      "warehouse-agent-api": "agent-api",
+      "warehouse-ngc-api": "ngc-api",
+      "warehouse-ngc-pull": "ngc-pull",
+      "warehouse-vios-postgres-admin": "vios-postgres-admin",
+      "warehouse-vios-postgres-vst": "vios-postgres-vst"
+    }
+  },
+  "cluster": {
+    "context": "warehouse-admin",
+    "domain": "cluster.local",
+    "server": "https://api.ocp.example.com:6443",
+    "user": "warehouse-platform-admin"
+  },
+  "format": 1,
+  "images": {
+    "reviewedImageOverrides": {},
+    "repositoryMirrors": {
+      "registry.example.com/warehouse/warehouse-elasticsearch": "registry.example.net/warehouse/warehouse-elasticsearch",
+      "registry.example.com/warehouse/warehouse-elasticsearch-init": "registry.example.net/warehouse/warehouse-elasticsearch-init",
+      "registry.example.com/warehouse/warehouse-kafka-health-check": "registry.example.net/warehouse/warehouse-kafka-health-check",
+      "registry.example.com/warehouse/warehouse-kibana-dashboard-init": "registry.example.net/warehouse/warehouse-kibana-dashboard-init",
+      "registry.example.com/warehouse/warehouse-logstash-protobuf": "registry.example.net/warehouse/warehouse-logstash-protobuf",
+      "registry.example.com/warehouse/warehouse-nvstreamer-sync-fix": "registry.example.net/warehouse/warehouse-nvstreamer-sync-fix",
+      "registry.example.com/warehouse/warehouse-vss-agent-ui": "registry.example.net/warehouse/warehouse-vss-agent-ui"
+    }
+  },
+  "ingress": {
+    "publicHost": "warehouse.apps.ocp.example.com",
+    "routeHosts": {
+      "warehouse-demo-agent-api": "warehouse.apps.ocp.example.com",
+      "warehouse-demo-agent-chat": "warehouse.apps.ocp.example.com",
+      "warehouse-demo-agent-static": "warehouse.apps.ocp.example.com",
+      "warehouse-demo-agent-websocket": "warehouse.apps.ocp.example.com",
+      "warehouse-demo-alert-bridge": "warehouse.apps.ocp.example.com",
+      "warehouse-demo-kibana": "warehouse.apps.ocp.example.com",
+      "warehouse-demo-storage": "warehouse.apps.ocp.example.com",
+      "warehouse-demo-ui": "warehouse.apps.ocp.example.com",
+      "warehouse-demo-ui-api-chat": "warehouse.apps.ocp.example.com",
+      "warehouse-demo-video-api": "warehouse.apps.ocp.example.com",
+      "warehouse-demo-vst": "warehouse.apps.ocp.example.com"
+    }
+  },
+  "media": {
+    "sourceSeconds": 3600,
+    "sourceSubPath": "hour"
+  },
+  "namespace": "warehouse-vss",
+  "network": {
+    "addresses": {},
+    "cidrs": {
+      "NET_CIDR_1": "192.0.2.1/32",
+      "NET_CIDR_2": "192.0.2.2/32",
+      "NET_CIDR_3": "192.0.2.3/32",
+      "NET_CIDR_4": "192.0.2.4/32",
+      "NET_CIDR_5": "192.0.2.5/32",
+      "NET_CIDR_6": "192.0.2.6/32"
+    }
+  },
+  "placement": {
+    "cpuNodeSelector": {},
+    "gpuNodeSelector": {
+      "workload.example.com/warehouse-gpu": "true"
+    }
+  },
+  "security": {
+    "clusterRoleName": "warehouse-vss-scc-fixed-uid-runtime-default",
+    "includeClusterResources": true,
+    "sccName": "warehouse-vss-fixed-uid-runtime-default"
+  },
+  "storage": {
+    "rwoClass": "vast-rwo",
+    "rwxClass": "vast-rwx"
+  }
+}
