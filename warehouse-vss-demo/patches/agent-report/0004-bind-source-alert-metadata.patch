@@ -1,0 +1,138 @@
+diff --git a/services/agent/src/vss_agents/agents/report_agent.py b/services/agent/src/vss_agents/agents/report_agent.py
+index b53acbd..2804ef4 100644
+--- a/services/agent/src/vss_agents/agents/report_agent.py
++++ b/services/agent/src/vss_agents/agents/report_agent.py
+@@ -424,7 +424,7 @@ async def report_agent(config: ReportAgentConfig, builder: Builder) -> AsyncGene
+         if report_input.incident_id:
+             logger.info(f"Getting incident by ID: {report_input.incident_id}")
+ 
+-            tool_call_args = {"id": report_input.incident_id, "includes": ["objectIds", "info"]}
++            tool_call_args = {"id": report_input.incident_id, "includes": ["objectIds", "info", "category"]}
+             yield AgentMessageChunk(
+                 type=AgentMessageChunkType.TOOL_CALL, content=f"Tool: get_incident\nArgs: {tool_call_args}"
+             )
+@@ -457,7 +457,7 @@ async def report_agent(config: ReportAgentConfig, builder: Builder) -> AsyncGene
+         else:
+             get_incidents_params = {
+                 "max_count": 1,
+-                "includes": ["objectIds", "info"],
++                "includes": ["objectIds", "info", "category"],
+                 "source": report_input.source,
+                 "source_type": report_input.source_type,
+                 "start_time": report_input.start_time.strftime("%Y-%m-%dT%H:%M:%S.000Z")
+@@ -504,6 +504,8 @@ async def report_agent(config: ReportAgentConfig, builder: Builder) -> AsyncGene
+ 
+         # Handle both "Id" and "id" field names
+         incident_id = incident.get("Id") or incident.get("id") or "unknown"
++        if report_input.incident_id and incident_id != report_input.incident_id:
++            raise ValueError("Incident lookup returned a different incident ID")
+         logger.info(f"Found incident: {incident_id}")
+ 
+         # Step 2: Generate detailed report
+diff --git a/services/agent/src/vss_agents/tools/template_report_gen.py b/services/agent/src/vss_agents/tools/template_report_gen.py
+index e256781..05fa660 100644
+--- a/services/agent/src/vss_agents/tools/template_report_gen.py
++++ b/services/agent/src/vss_agents/tools/template_report_gen.py
+@@ -16,6 +16,8 @@
+ import asyncio
+ from collections.abc import AsyncGenerator
+ from datetime import datetime
++from datetime import timezone
++import html
+ from importlib.resources import files
+ import json
+ import logging
+@@ -1015,6 +1017,85 @@ async def _format_custom_report(
+         return f"Error generating custom report with LLM, {e}"
+ 
+ 
++def _bind_alert_metadata(markdown_content: str, report_input: TemplateReportGenInput) -> str:
++    """Bind source-owned identity/time fields after model formatting, before storage.
++
++    The visual assessment stays model-generated. This function does not promote
++    an alert label or a model observation into a human-verified safety finding.
++    """
++    metadata = report_input.alert_metadata
++    if not isinstance(metadata, dict):
++        raise ValueError("Report alert metadata must be an object")
++    incident_id = metadata.get("Id") or metadata.get("id")
++    if (
++        not isinstance(incident_id, str)
++        or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._:-]{7,127}", incident_id)
++        or (metadata.get("Id") and metadata.get("id") and metadata["Id"] != metadata["id"])
++    ):
++        raise ValueError("Report requires one exact source incident ID")
++    sensor_id = report_input.alert_sensor_id
++    if (
++        not isinstance(sensor_id, str)
++        or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]{1,127}", sensor_id)
++        or metadata.get("sensorId") != sensor_id
++    ):
++        raise ValueError("Report sensor differs from the source incident")
++
++    def timestamp(value: Any) -> datetime:
++        if not isinstance(value, str) or len(value) > 64:
++            raise ValueError("Report requires source timestamps")
++        try:
++            parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
++        except ValueError:
++            raise ValueError("Report contains an invalid source timestamp") from None
++        if parsed.tzinfo is None or parsed.utcoffset() is None:
++            raise ValueError("Report timestamps require a timezone")
++        return parsed.astimezone(timezone.utc)
++
++    start = timestamp(report_input.alert_from_timestamp)
++    end = timestamp(report_input.alert_to_timestamp)
++    if (
++        start != timestamp(metadata.get("timestamp"))
++        or end != timestamp(metadata.get("end"))
++        or end < start
++    ):
++        raise ValueError("Report interval differs from the source incident")
++    category = metadata.get("category")
++    if not isinstance(category, str) or not category.strip() or len(category) > 100:
++        raise ValueError("Report requires the stored alert category")
++    info = metadata.get("info")
++    verdict = info.get("verdict") if isinstance(info, dict) else None
++    if verdict is None:
++        verdict = "Not provided in alert metadata"
++    if not isinstance(verdict, str) or not verdict.strip() or len(verdict) > 100:
++        raise ValueError("Report contains an invalid stored alert verdict")
++
++    def cell(value: str) -> str:
++        if any(ord(char) < 32 or ord(char) == 127 for char in value):
++            raise ValueError("Report metadata contains control characters")
++        return html.escape(value, quote=False).replace("|", "&#124;")
++
++    rows = [
++        ("Report Identifier", incident_id),
++        ("Date of Incident", start.strftime("%Y-%m-%d")),
++        ("Time of Incident", start.strftime("%H:%M:%S.%f").rstrip("0").rstrip(".") + " UTC"),
++        ("Incident Start (UTC)", start.isoformat().replace("+00:00", "Z")),
++        ("Incident End (UTC)", end.isoformat().replace("+00:00", "Z")),
++        ("Reporting AI Agent", "report_agent"),
++        ("Sensor ID", sensor_id),
++        ("Stored Alert Category", category),
++        ("Stored Alert Verdict", verdict),
++    ]
++    table = "## Basic Information\n\nSource: stored alert metadata.\n\n| Field | Value |\n|-------|-------|\n"
++    table += "\n".join(f"| **{label}** | {cell(value)} |" for label, value in rows)
++    table += "\n\nModel-generated visual assessment follows; it is separate from the stored alert classification.\n\n"
++    section = re.compile(r"^##[ \t]+Basic Information[ \t]*\n.*?(?=^##[ \t]+|\Z)", re.MULTILINE | re.DOTALL)
++    if len(section.findall(markdown_content)) != 1:
++        raise ValueError("Report must contain exactly one Basic Information section")
++    # A callable replacement preserves literal backslashes in source metadata.
++    return section.sub(lambda _match: table, markdown_content, count=1)
++
++
+ @register_function(config_type=TemplateReportGenConfig, framework_wrappers=[LLMFrameworkEnum.LANGCHAIN])
+ async def template_report_gen(config: TemplateReportGenConfig, builder: Builder) -> AsyncGenerator[FunctionInfo]:
+     """Tool for generating a report using a template, saving it to an object store, and providing HTTP URLs for easy access."""
+@@ -1080,6 +1161,7 @@ async def template_report_gen(config: TemplateReportGenConfig, builder: Builder)
+             agent_version=config.agent_version,
+             llm_reasoning=report_input.llm_reasoning,
+         )
++        markdown_content = _bind_alert_metadata(markdown_content, report_input)
+ 
+         # Generate filenames
+         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

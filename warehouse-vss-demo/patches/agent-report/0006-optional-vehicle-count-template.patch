@@ -1,0 +1,8 @@
+diff --git a/deploy/docker/industry-profiles/warehouse-operations/vss-agent/templates/incident_report_template.md b/deploy/docker/industry-profiles/warehouse-operations/vss-agent/templates/incident_report_template.md
+--- a/deploy/docker/industry-profiles/warehouse-operations/vss-agent/templates/incident_report_template.md
++++ b/deploy/docker/industry-profiles/warehouse-operations/vss-agent/templates/incident_report_template.md
+@@ -23,3 +23,3 @@
+ | **Number of Persons involved** | {persons_involved} |
+-| **Number of Vehicles involved** | {persons_involved} |
++| **Number of Vehicles involved** | {vehicles_involved} |
+ 

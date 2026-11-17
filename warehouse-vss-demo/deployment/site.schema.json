@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Warehouse fresh-install site inputs",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["format", "namespace", "cluster", "ingress", "storage", "placement", "auth", "images", "security", "network", "media"],
+  "properties": {
+    "format": {"const": 1},
+    "namespace": {"type": "string", "pattern": "^[a-z][a-z0-9-]{0,61}[a-z0-9]$"},
+    "cluster": {"type": "object", "additionalProperties": false, "required": ["server", "context", "user", "domain"], "properties": {
+      "server": {"type": "string", "pattern": "^https://[a-zA-Z0-9.-]+(:[0-9]+)?$"},
+      "context": {"type": "string", "minLength": 1}, "user": {"type": "string", "minLength": 1}, "domain": {"type": "string", "minLength": 1}
+    }},
+    "ingress": {"type": "object", "additionalProperties": false, "required": ["publicHost", "routeHosts"], "properties": {
+      "publicHost": {"type": "string", "minLength": 1}, "routeHosts": {"type": "object", "additionalProperties": {"type": "string", "minLength": 1}}
+    }},
+    "storage": {"type": "object", "additionalProperties": false, "required": ["rwoClass", "rwxClass"], "properties": {
+      "rwoClass": {"type": "string", "minLength": 1}, "rwxClass": {"type": "string", "minLength": 1}
+    }},
+    "placement": {"type": "object", "additionalProperties": false, "required": ["gpuNodeSelector", "cpuNodeSelector"], "properties": {
+      "gpuNodeSelector": {"type": "object", "minProperties": 1, "additionalProperties": {"type": "string"}},
+      "cpuNodeSelector": {"type": "object", "additionalProperties": {"type": "string"}}
+    }},
+    "auth": {"type": "object", "additionalProperties": false, "required": ["imagePullSecrets", "secretNames"], "properties": {
+      "imagePullSecrets": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 1}},
+      "secretNames": {"type": "object", "additionalProperties": {"type": "string", "minLength": 1}}
+    }},
+    "images": {"type": "object", "additionalProperties": false, "required": ["repositoryMirrors", "reviewedImageOverrides"], "properties": {
+      "repositoryMirrors": {"type": "object", "additionalProperties": {"type": "string", "minLength": 1}},
+      "reviewedImageOverrides": {"type": "object", "propertyNames": {"pattern": "@sha256:[a-f0-9]{64}$"}, "additionalProperties": {"type": "string", "pattern": "@sha256:[a-f0-9]{64}$"}}
+    }},
+    "network": {"type": "object", "additionalProperties": false, "required": ["addresses", "cidrs"], "properties": {
+      "addresses": {"type": "object", "patternProperties": {"^NET_ADDRESS_[0-9]+$": {"type": "string", "minLength": 1}}, "additionalProperties": false},
+      "cidrs": {"type": "object", "patternProperties": {"^NET_CIDR_[0-9]+$": {"type": "string", "minLength": 1}}, "additionalProperties": false}
+    }},
+    "media": {"type": "object", "additionalProperties": false, "required": ["sourceSubPath", "sourceSeconds"], "properties": {
+      "sourceSubPath": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]*$"}, "sourceSeconds": {"enum": [600, 3600]}
+    }},
+    "security": {"type": "object", "additionalProperties": false, "required": ["sccName", "clusterRoleName", "includeClusterResources"], "properties": {
+      "sccName": {"type": "string", "minLength": 1}, "clusterRoleName": {"type": "string", "minLength": 1}, "includeClusterResources": {"type": "boolean"}
+    }}
+  }
+}

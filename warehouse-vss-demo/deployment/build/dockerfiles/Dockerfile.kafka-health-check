@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+ARG BASE_IMAGE=docker.io/confluentinc/cp-kafka@sha256:acbbf674f2ed40e5d0a8ca51beb0f00692c866fc22b5ce06f8cadbdc54cd4436
+FROM ${BASE_IMAGE}
+
+LABEL org.opencontainers.image.title="NVIDIA VSS Warehouse Kafka health check"
+LABEL org.opencontainers.image.source="https://github.com/NVIDIA-AI-Blueprints/video-search-and-summarization"
+LABEL org.opencontainers.image.revision="7640d917047cf7b0fd3085eefb8282754b56bc94"
+
+# The pinned base image declares USER appuser.  Elevate only while assembling
+# the image so the OpenShift group-0 permissions can be applied, then restore
+# the non-root runtime user below.
+USER root
+
+COPY --chown=appuser:0 third-party/jq-linux-amd64 /home/appuser/jqbin/jq
+COPY --chown=appuser:0 source/check-kafka-health.sh /scripts/check-kafka-health.sh
+
+# OpenShift assigns an arbitrary non-root UID while retaining group 0.  The
+# base image keeps /home/appuser private (0700), so expose only the traversal
+# path and the two executables to group 0.  Preserve appuser as the image's
+# declared runtime user and do not grant world write or elevated privileges.
+RUN chgrp 0 /home/appuser /home/appuser/jqbin \
+    && chmod 0750 /home/appuser /home/appuser/jqbin \
+    && chmod 0550 /home/appuser/jqbin/jq /scripts/check-kafka-health.sh
+
+USER appuser
+ENTRYPOINT ["/scripts/check-kafka-health.sh"]

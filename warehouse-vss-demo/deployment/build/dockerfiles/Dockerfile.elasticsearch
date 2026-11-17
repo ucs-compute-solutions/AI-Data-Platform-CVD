@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025-2026, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+ARG BASE_IMAGE=docker.elastic.co/elasticsearch/elasticsearch@sha256:bff1a79d2502b3a328f90d910727b6b7a4d54846dfc5693338db74d2c7971863
+FROM ${BASE_IMAGE}
+
+LABEL org.opencontainers.image.title="NVIDIA VSS Warehouse Elasticsearch"
+LABEL org.opencontainers.image.source="https://github.com/NVIDIA-AI-Blueprints/video-search-and-summarization"
+LABEL org.opencontainers.image.revision="7640d917047cf7b0fd3085eefb8282754b56bc94"
+
+ENV ES_HOME=/usr/share/elasticsearch
+USER 1000:1000
+WORKDIR ${ES_HOME}
+
+EXPOSE 9200 9300
+ENTRYPOINT ["/usr/share/elasticsearch/bin/elasticsearch"]

@@ -1,0 +1,60 @@
+{
+  "format": 1,
+  "scope": "warehouse-deployment-and-media-population",
+  "platform": "linux/amd64",
+  "packageImagePins": 25,
+  "distinctPlatformImages": 24,
+  "sourceRegistryMetadataAccessible": 25,
+  "credentialValuesIncluded": false,
+  "imageBinariesIncludedInGit": false,
+  "customDockerArchives": [
+    {
+      "role": "four-custom-runtime-images",
+      "images": 4,
+      "bytes": 6117175296,
+      "sha256": "37553229ec2fcc025d7f4074040aa75111c710cee5bb10145a608eefa8400257",
+      "independentLocalCopyChecksumVerified": true,
+      "allImageContentVerified": true
+    },
+    {
+      "role": "three-initialization-helper-images",
+      "images": 3,
+      "bytes": 584485888,
+      "sha256": "78126013a21668a15522fbd507432dda280756acff346155ca23b807a66a8e95",
+      "independentLocalCopyChecksumVerified": true,
+      "allImageContentVerified": true
+    }
+  ],
+  "fullNativeFileMirror": {
+    "completed": true,
+    "allImageContentVerified": true,
+    "filesValidated": 762,
+    "bytesValidated": 51584833076,
+    "uniqueBytesHashed": 48963269460,
+    "clientLocalDiskCopy": "verified",
+    "transportArchive": {
+      "file": "warehouse-images-linux-amd64.tar",
+      "bytes": 48964782080,
+      "sha256": "cc47cccb1df19608d689dfc89c2ff4bd54c1c4c925e72655a60ca147322f3447",
+      "completedAtUtc": "2026-11-17T01:43:09Z",
+      "registryCredentialFilesIncluded": false,
+      "readRequiresSourceCluster": false
+    },
+    "secondIndependentStorageCopy": "destination-required"
+  },
+  "restoreTools": {
+    "offlineContentVerification": true,
+    "transportArchiveExtractionSmokeTest": {
+      "passed": true,
+      "platformImages": 1,
+      "packagePins": 2,
+      "nativeMetadataReadWithoutCluster": true,
+      "extractedContentReverified": true
+    },
+    "planOnlyByDefault": true,
+    "publishedTargetDigestVerification": true,
+    "actualRegistryRestorePerformed": false
+  },
+  "freshInstallAccepted": false,
+  "runtimeModelWeightsAndDataVolumesIncluded": false
+}

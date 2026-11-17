@@ -1,0 +1,22 @@
+diff --git a/services/agent/src/vss_agents/video_analytics/tools.py b/services/agent/src/vss_agents/video_analytics/tools.py
+--- a/services/agent/src/vss_agents/video_analytics/tools.py
++++ b/services/agent/src/vss_agents/video_analytics/tools.py
+@@ -399,9 +399,18 @@ async def video_analytics(config: VideoAnalyticsConfig, builder: Builder):
+         # Query for single incident
+         incidents = await es_client.search(
+             index_key=index_key, query_body=query, size=1, source_includes=incident_fields
+         )
+ 
++        # User-created RTVI-VLM rule events have no raw CV incident counterpart.
++        # Preserve the configured primary lookup and use the same exact-ID query
++        # only when the raw index has no result. List/analytics queries are unchanged.
++        if not incidents and not _config.vlm_verified:
++            incidents = await es_client.search(
++                index_key="vlm_incidents", query_body=query, size=1,
++                source_includes=incident_fields,
++            )
++
+         # Return the incident if found, otherwise None
+         return incidents[0] if incidents else {}
+ 
+     async def _get_incidents(input: GetIncidentsInputBase) -> dict:

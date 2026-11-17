@@ -1,0 +1,140 @@
+diff --git a/services/agent/src/vss_agents/agents/top_agent.py b/services/agent/src/vss_agents/agents/top_agent.py
+--- a/services/agent/src/vss_agents/agents/top_agent.py
++++ b/services/agent/src/vss_agents/agents/top_agent.py
+@@ -71,6 +71,7 @@
+ from vss_agents.agents.data_models import AgentMessageChunkType
+ from vss_agents.agents.data_models import AgentOutput
+ from vss_agents.agents.data_models import AgentRequestOptions
++from vss_agents.agents.incident_followup import answer_followup, is_report_request, validated_context
+ from vss_agents.agents.postprocessing import POSTPROCESSING_FEEDBACK_MARKER
+ from vss_agents.agents.postprocessing import PostprocessingConfig
+ from vss_agents.agents.postprocessing import PostprocessingNode
+@@ -180,6 +181,7 @@
+     final_answer: str = Field(default="", description="Final answer from the agent")
+     plan: str = Field(default="", description="Execution plan drafted by the plan node")
+     previous_conversation: str = Field(default="", description="Previous conversation summary")
++    bound_incident: dict[str, str] = Field(default_factory=dict, description="Validated single-report context for this conversation only")
+     options: AgentRequestOptions = Field(default_factory=AgentRequestOptions, description="Per-request options")
+     subagent_side_effects: list[str] = Field(
+         default_factory=list,
+@@ -278,11 +280,13 @@
+         plan_system_prompt: str = "",
+         tool_call_prompt: str = "",
+         response_format_prompt: str = "",
++        incident_video_function: Any = None,
+     ) -> None:
+         logger.info("Initializing Top Agent")
+         await super().__ainit__()
+ 
+         self.llm = llm
++        self.incident_video_function = incident_video_function
+         self.max_history = max_history
+         tools_list = tools or []
+         subagents_list = subagents or []
+@@ -563,6 +567,7 @@
+                 final_answer="",
+                 options=options,
+                 previous_options=copy.deepcopy(previous_state.get("options")),
++                bound_incident=validated_context(previous_state.get("bound_incident")),
+             )
+         else:
+             input_state = TopAgentState(
+@@ -594,7 +599,27 @@
+             yield error_chunk
+             user_message = "Sorry, I wasn't able to complete your request. Please try again. If the issue persists, please contact your administrator."
+             yield AgentMessageChunk(type=AgentMessageChunkType.FINAL, content=user_message)
++
++    async def _answer_incident_followup(self, state: TopAgentState, question: str) -> str | None:
++        async def complete(system: str, payload: dict[str, Any]) -> str:
++            kwargs = get_llm_reasoning_bind_kwargs(self.llm, state.options.llm_reasoning)
++            model = self.llm.bind(**kwargs) if kwargs else self.llm
++            result = await model.ainvoke([
++                SystemMessage(content=system),
++                HumanMessage(content=json.dumps(payload, ensure_ascii=False)),
++            ], config=RunnableConfig(callbacks=self.callbacks))
++            _, text = parse_reasoning_content(result)
++            return text or (result.content if isinstance(result.content, str) else "")
++
++        async def video(payload: dict[str, Any]) -> str:
++            if self.incident_video_function is None:
++                raise RuntimeError("Incident video understanding is unavailable")
++            return await self.incident_video_function.ainvoke({
++                **payload, "vlm_reasoning": state.options.vlm_reasoning,
++            })
+ 
++        return await answer_followup(state.bound_incident, question, complete, video)
++
+     async def _plan_node(self, state: TopAgentState) -> TopAgentState:
+         """
+         Planning node: drafts a step-by-step execution plan using tool names/descriptions only.
+@@ -611,6 +636,16 @@
+         question = state.current_message.content
+         if not isinstance(question, str):
+             question = str(question)
++
++        if is_report_request(question):
++            # A failed new report must not silently leave an older incident active.
++            state.bound_incident = {}
++        else:
++            followup_answer = await self._answer_incident_followup(state, question)
++            if followup_answer is not None:
++                state.final_answer = followup_answer
++                logger.info("Incident-bound follow-up completed for %s", state.bound_incident.get("incident_id"))
++                return state
+ 
+         # TODO: Hack for UI to show the uploaded video, use commands "/show" to by pass plan in next release.
+         lowered_question = question.lower()
+@@ -940,6 +975,12 @@
+                                     # Try to parse as AgentOutput JSON for sub-agents
+                                     try:
+                                         agent_output = AgentOutput.model_validate_json(chunk.content)
++                                        if tool_name in ("report_agent", "multi_report_agent") and agent_output.status == "success":
++                                            metadata = agent_output.metadata or {}
++                                            state.bound_incident = (
++                                                validated_context(metadata.get("incident_context"))
++                                                if tool_name == "report_agent" else {}
++                                            )
+                                         logger.debug(f"Received AgentOutput from {tool_name} via FINAL chunk")
+                                         final_content_parts = []
+                                         if agent_output.messages:
+@@ -1520,6 +1561,7 @@
+             plan_system_prompt=config.prompt,
+             tool_call_prompt=tool_call_prompt,
+             response_format_prompt=response_format_prompt,
++            incident_video_function=await builder.get_function("video_understanding"),
+         ),
+     )
+ 
+diff --git a/services/agent/src/vss_agents/agents/report_agent.py b/services/agent/src/vss_agents/agents/report_agent.py
+--- a/services/agent/src/vss_agents/agents/report_agent.py
++++ b/services/agent/src/vss_agents/agents/report_agent.py
+@@ -26,6 +26,7 @@
+ """
+ 
+ from collections.abc import AsyncGenerator
++from vss_agents.agents.incident_followup import build_context
+ from datetime import datetime
+ import asyncio
+ import json
+@@ -646,6 +647,13 @@
+         )
+         _append_artifact_display_note(side_effects)
+ 
++        try:
++            incident_context = build_context(incident, report_text)
++        except ValueError:
++            # Preserve report delivery if a source interval is unsuitable for Q&A.
++            incident_context = {}
++            logger.warning("Single incident report has no valid follow-up binding")
++
+         agent_output = AgentOutput(
+             messages=[
+                 f"Report generated successfully for incident {incident_id}.",
+@@ -659,6 +667,7 @@
+                 "incident_id": incident_id,
+                 "sensor_id": incident.get("sensorId"),
+                 "report_type": "single_incident",
++                "incident_context": incident_context,
+             },
+         )
+         yield AgentMessageChunk(type=AgentMessageChunkType.FINAL, content=agent_output.model_dump_json())

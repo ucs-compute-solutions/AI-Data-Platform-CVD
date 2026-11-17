@@ -1,0 +1,98 @@
+{
+  "source_repository": "https://github.com/NVIDIA-AI-Blueprints/video-search-and-summarization",
+  "source_commit": "7640d917047cf7b0fd3085eefb8282754b56bc94",
+  "required_existing_patch": "0001-preserve-vios-sensor-id.patch",
+  "patch": "0002-isolate-alert-report-conversation.patch",
+  "patch_sha256": "cb4742f911d35e87e1ecfee4892c899e1a41e5558a06921c1ebe74befd170baf",
+  "files": [
+    {
+      "path": "services/ui/apps/nv-metropolis-bp-vss-ui/__tests__/hooks/useChatSidebarMainTabBridge.test.ts",
+      "original_sha256": "95f37db572a50ec1a07b924e67d980e279b1ba7cb046f7bb2c58ca8a401d9ec8",
+      "patched_sha256": "98f9b78ce06c3ef88d7177b5a9a68697506dd1c9860629267af875d49c0a6184"
+    },
+    {
+      "path": "services/ui/apps/nv-metropolis-bp-vss-ui/components/Home.tsx",
+      "original_sha256": "552bb5366e52dccd0a36412421d40d0e6b1a65d2340d2adbd7a7f411dcb617f6",
+      "patched_sha256": "723f4d32cc0bec64e24189c5aaeb1c18d88349064546c9d3a82f6e9c50bea689"
+    },
+    {
+      "path": "services/ui/apps/nv-metropolis-bp-vss-ui/hooks/useChatSidebarMainTabBridge.ts",
+      "original_sha256": "0fe88cdcca2f89c4dde4b5f02031fa79cb61b9a4d76907dc2d7bc6bcb1d9e5c3",
+      "patched_sha256": "4279c3f4092b081da34178ebfc8ef054314f7b2be724a109dd7a47d26eeb7e10"
+    },
+    {
+      "path": "services/ui/packages/nemo-agent-toolkit-ui/components/Chat/Chat.tsx",
+      "original_sha256": "91ae0fde8223e998f3bd4f32a2006e8a968a79ffb77518b33388dc276a68d945",
+      "patched_sha256": "28afbd821cd6a55ec061e2fe16c7ed1ca2346b929942192bfa2b80792d88a024"
+    },
+    {
+      "path": "services/ui/packages/nemo-agent-toolkit-ui/lib-src/index.d.ts",
+      "original_sha256": "e9e66fae99f7f1834a86dd11ad528d80428346a2ca4d375e9451a2fc877f8e43",
+      "patched_sha256": "d16cbf763935776eb4e21a6a3ea75ac772c29755ca3ca807d6b4f145cc39ac11"
+    },
+    {
+      "path": "services/ui/packages/nemo-agent-toolkit-ui/pages/api/home/home.context.tsx",
+      "original_sha256": "1bb31979356025ff13c4420bde678b87792aa693d0b0cd791c3e35bf2fb82f15",
+      "patched_sha256": "40b00e706e009a6f1ca11a7a2796e2d49d410ac059fe3b6f0b47395488eb301d"
+    },
+    {
+      "path": "services/ui/packages/nemo-agent-toolkit-ui/pages/api/home/home.tsx",
+      "original_sha256": "176cdae6069da2a880f668a52a60a17d76f771262c0c5c868eb48323ed3e4cdd",
+      "patched_sha256": "13bd74b7790e3d03e6da2ab4afadc6cbb3b7d5273d3486f9f0b6f4d2998e37b7"
+    },
+    {
+      "path": "services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/components/AlertsTable.tsx",
+      "original_sha256": "6667e3fd0bd42ad60249318ba5593e9ec995840b8a58634ec5ae3674a19ad470",
+      "patched_sha256": "57cdd1e6eea5b062f1440f97604ced18d17ca5a6123947979550de0af36abc35"
+    },
+    {
+      "path": "services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/components/MetadataSection.tsx",
+      "original_sha256": "b784f587b6232beff181a95562da36cf910d4ea002c3f0e5ff346b8d30cc8eac",
+      "patched_sha256": "10aa0bb5d6239aa6a53c85807cac098e008f378721954254da101f32a9efdfa8"
+    },
+    {
+      "path": "services/ui/packages/nv-metropolis-bp-vss-ui/alerts/lib-src/types.ts",
+      "original_sha256": "b22ca566f28e0e1d12479f042515f76a101a6a0f89e0e85fdb92ea288b2193fa",
+      "patched_sha256": "4c9a0eedab95b139c184d54041d352c866ac3d06270584dfb934b9eccc74374b"
+    },
+    {
+      "path": "services/ui/apps/nv-metropolis-bp-vss-ui/utils/sidebarSubmitChatMessage.ts",
+      "original_sha256": null,
+      "patched_sha256": "cac99eb5049380ed13eeb182120ea06905a943aab5c41fc9fc1f49441fdcd6ba"
+    },
+    {
+      "path": "services/ui/packages/nemo-agent-toolkit-ui/__tests__/components/Chat.report-conversation.test.tsx",
+      "original_sha256": null,
+      "patched_sha256": "737c106e6f4bcd1b75b75c1fa0984a8d57732e5a373fc7039d0e33a1c7844266"
+    },
+    {
+      "path": "services/ui/packages/nemo-agent-toolkit-ui/__tests__/utils/freshReportConversation.test.ts",
+      "original_sha256": null,
+      "patched_sha256": "e6f8996ccd3ac7f3a0b8221b99311dc2485b07f8233b5e06668c8feaefa651d4"
+    },
+    {
+      "path": "services/ui/packages/nemo-agent-toolkit-ui/utils/freshReportConversation.ts",
+      "original_sha256": null,
+      "patched_sha256": "dc3d297cba2e9c18bc3ac16c570ed3b48b1ec8b918db5fb2f49dce7b08796cfc"
+    },
+    {
+      "path": "services/ui/packages/nv-metropolis-bp-vss-ui/alerts/__tests__/components/MetadataSection.report-isolation.test.tsx",
+      "original_sha256": null,
+      "patched_sha256": "12ae0194802570b7bee88d4302911c003e849a76a289231b1457a22af57358e3"
+    }
+  ],
+  "build_inputs": [
+    {
+      "path": "services/ui/package-lock.json",
+      "sha256": "f64070ed3f244d91a56cc46f2debd3af9cb9f019c011a9d8805b882f449e6c5f"
+    },
+    {
+      "path": "services/ui/package.json",
+      "sha256": "094e22f2988484f01c8c9f187aed7863a9d082d6efb8775d62684005cae250ac"
+    },
+    {
+      "path": "services/ui/Dockerfile",
+      "sha256": "b991fddfaf9745f8ccc5d72e6e8f331c5ead64405dbbfc8600d7b30a496312dd"
+    }
+  ]
+}

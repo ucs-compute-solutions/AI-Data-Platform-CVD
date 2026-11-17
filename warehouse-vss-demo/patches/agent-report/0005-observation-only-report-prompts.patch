@@ -1,0 +1,58 @@
+diff --git a/deploy/docker/industry-profiles/warehouse-operations/vss-agent/configs/config.yml b/deploy/docker/industry-profiles/warehouse-operations/vss-agent/configs/config.yml
+index 3270dd4..6561887 100644
+--- a/deploy/docker/industry-profiles/warehouse-operations/vss-agent/configs/config.yml
++++ b/deploy/docker/industry-profiles/warehouse-operations/vss-agent/configs/config.yml
+@@ -110,23 +110,25 @@ functions:
+     vst_external_url: ${VST_EXTERNAL_URL}
+     vlm_prompts:
+     - >-
+-      Describe the incident in details including why the
+-      incident happened, contributing factors to the incident,
+-      outcomes and responses
++      Describe only the sequence of activity visible in this video clip.
++      Distinguish observed motion from stationary objects. Do not infer
++      causes, contributing factors, intent, counterfactual events, injuries,
++      or outcomes not visibly established by the clip. State uncertainty.
+     - >-
+-      Describe the location of the incident. Include location
+-      description, light condition, floor condition and
+-      blockage present
++      Describe the visible warehouse location, lighting, floor and any
++      visible obstruction. Use Unknown when a condition cannot be observed.
++      Do not infer a hazard or blockage from the alert label alone.
+     - >-
+-      Describe people involved in the video. Focus only on the
+-      following object ids: {object_ids}. Include person type
+-      (worker/driver/pedestrian/other), person behaviour at
+-      the time, person location
++      Describe people visibly present and their observed activity and
++      location. Focus on these object ids when supplied: {object_ids}.
++      Distinguish walking from standing and handling an object from merely
++      being near it. Do not infer identity, role, intent or unseen actions.
+     - >-
+-      Describe vehicles involved in the video. Focus only on
+-      the following object ids: {object_ids}. Include vehicle
+-      type (transporter/forklift/humanoid/other), vehicle
+-      maneuver at the time and vehicle location
++      Describe vehicles visibly present, their location and observed motion.
++      Focus on these object ids when supplied: {object_ids}. Call a vehicle
++      moving only when its position visibly changes across frames; a parked
++      vehicle is not evidence of driving, carrying a load or an approaching
++      collision. State Unknown if motion or load handling cannot be observed.
+     report_prompt: |
+       Template to populate:
+       {template}
+@@ -137,6 +139,13 @@ functions:
+       3. Fill in all template fields with extracted information
+       4. Use "Unknown" or "N/A" for fields where information is not available
+       5. AI Agent version: {agent_version}
++      6. Keep the stored alert category separate from the visual assessment;
++         an alert label is not proof of a collision, near miss or safety event.
++      7. Describe only observations supported by the video results. Do not
++         invent causes, intent, counterfactuals, measurements, vehicle motion,
++         load transport, injury or actions outside the selected clip.
++      8. Do not convert an unknown observation into a positive finding. A
++         vehicle's presence alone does not establish motion or load handling.
+ 
+       Return only the populated markdown template without any additional text or code blocks.
+ 

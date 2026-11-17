@@ -1,0 +1,28 @@
+{
+  "format": 1,
+  "releaseTag": null,
+  "published": false,
+  "assets": [
+    {
+      "file": "warehouse-images-linux-amd64.tar",
+      "bytes": 48964782080,
+      "sha256": "cc47cccb1df19608d689dfc89c2ff4bd54c1c4c925e72655a60ca147322f3447",
+      "purpose": "private Linux/amd64 container-image restore; 25 source pins and 24 platform images",
+      "distribution": "authorized handoff archive; not included in Git and not uploaded publicly"
+    },
+    {
+      "file": "Cisco-AI-POD-Warehouse-Demo-Browser.zip",
+      "bytes": 190952388,
+      "sha256": "f443753ca4383139d32d6cfbbc66ba93165fb6feec3c943f1e4593592c8b18f4",
+      "purpose": "offline browser walkthrough; extract and open Start Demo.html",
+      "distribution": "separate release asset; not included in Git source"
+    },
+    {
+      "file": "Cisco-AI-POD-Warehouse-Demo-Movie-r2-20261116.zip",
+      "bytes": 223499832,
+      "sha256": "3b916731cb8b815efd8ebfbe6532e5009f30ec49b1f5ebe2dcc8bc4819f89700",
+      "purpose": "captured media input for rebuilding the browser walkthrough",
+      "distribution": "separate release asset; not included in Git source"
+    }
+  ]
+}
