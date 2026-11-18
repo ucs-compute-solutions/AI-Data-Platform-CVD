@@ -1,5 +1,9 @@
 # Warehouse video intelligence demo
 
+[Source repository](https://github.com/ucs-compute-solutions/AI-Data-Platform-CVD) ·
+[Browse the Warehouse code](https://github.com/ucs-compute-solutions/AI-Data-Platform-CVD/tree/main/warehouse-vss-demo) ·
+[Get the code and deploy](deployment/DEPLOYMENT.md#get-the-code)
+
 Deploy the NVIDIA VSS 3.2.1 Warehouse candidate on an existing OpenShift
 platform, replay four camera sources through that deployment, or present the
 captured browser demo. These are three separate workflows.

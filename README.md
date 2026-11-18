@@ -6,6 +6,12 @@ NVIDIA AI, and Red Hat OpenShift. Use one published repository tag as the
 versioned unit for documentation, configuration examples, scripts, and
 validation evidence.
 
+For the **Warehouse demo**, use the current `main` branch and start with the
+[Warehouse overview](warehouse-vss-demo/README.md) or
+[get-the-code instructions](warehouse-vss-demo/deployment/DEPLOYMENT.md#get-the-code).
+The original `v1.0.0` CVD tag does not contain this additive demo; record the
+commit SHA used for a Warehouse installation.
+
 ```mermaid
 flowchart LR
     A[Clone a published tag] --> B[Choose one companion]
@@ -27,7 +33,7 @@ flowchart LR
 | Document RAG | [`workloads/document-rag/README.md`](workloads/document-rag/README.md) | Validate local models and the complete governed Document RAG flow. |
 | VAST-native VSS | [`workloads/vast-native-vss/README.md`](workloads/vast-native-vss/README.md) | Build, deploy, validate, and roll back the VAST-native video workflow. |
 | NVIDIA VSS 3.2.1 Search | [`workloads/nvidia-vss-3.2.1-search/README.md`](workloads/nvidia-vss-3.2.1-search/README.md) | Deploy and validate the NVIDIA Search profile on OpenShift. |
-| Warehouse Operations demo | [`demos/warehouse-operations/README.md`](demos/warehouse-operations/README.md) | Continue implementation of the NVIDIA VSS Warehouse profile with reversible switching back to the validated CVD video-search workloads. |
+| Warehouse Operations demo | [`warehouse-vss-demo/README.md`](warehouse-vss-demo/README.md) | Get the code, prepare the platform and deploy the Warehouse candidate; replay four cameras or present the captured demo. |
 
 ## Standard walkthrough
 

@@ -11,8 +11,8 @@
       "executable": false
     },
     "README.md": {
-      "bytes": 5083,
-      "sha256": "14fd67d92f15d5d7c63c4f136485bfda4726916ccffd9eca8273a6936298e38a",
+      "bytes": 5358,
+      "sha256": "f0acfc95c9c9421d17968c060463eafb50fab6e039eb984e602223e6b76183d8",
       "executable": false
     },
     "SECURITY.md": {
@@ -101,8 +101,8 @@
       "executable": false
     },
     "deployment/DEPLOYMENT.md": {
-      "bytes": 15697,
-      "sha256": "2076d34618e7295e1ef1f736998da175d30de0c539d11a3c24871d9226def0b3",
+      "bytes": 16874,
+      "sha256": "ab5b62fbe98ac3d970d0b37dcfd4ed10db60d74623cda2381839eeb19fd683f1",
       "executable": false
     },
     "deployment/README.md": {
@@ -538,6 +538,11 @@
     "security/test_check_pr_checks.py": {
       "bytes": 13528,
       "sha256": "fde1ef24e98e3058da3b0a94eaf23349edf4e70ad49e7e61a0ffcce5e109fb11",
+      "executable": false
+    },
+    "tests/test_documentation_navigation.py": {
+      "bytes": 2974,
+      "sha256": "22be439477a754746f930d1ff67c63731c0df6b883bb761466bcc46ff58301cb",
       "executable": false
     },
     "tests/test_verify.py": {
