@@ -1,5 +1,8 @@
 # Deploy NVIDIA VSS 3.2.1 Warehouse
 
+[Warehouse demo overview](../README.md) ·
+[Browse the Warehouse code on GitHub](https://github.com/ucs-compute-solutions/AI-Data-Platform-CVD/tree/main/warehouse-vss-demo)
+
 ```mermaid
 flowchart LR
     subgraph S1["Stage 1 · install"]
@@ -16,7 +19,31 @@ flowchart LR
 The captured baseline is a new-site installation candidate. Fresh-install,
 portable cold-restart and bounded-hour acceptance remain pending; the captured
 browser demo is separate. See [validation scope](../VALIDATION.md).
-Run the commands below from `warehouse-vss-demo/deployment`.
+
+## Get the code
+
+Clone the full [AI Data Platform CVD repository](https://github.com/ucs-compute-solutions/AI-Data-Platform-CVD),
+not just this guide. The Warehouse folder includes the
+[deployment tool](warehouse_deploy.py), [example site configuration](baseline/site.render-example.json),
+manifests and build inputs used below.
+
+On the OpenShift administration client with Git, Python 3.10+ and Bash:
+
+```bash
+git clone --branch main --single-branch https://github.com/ucs-compute-solutions/AI-Data-Platform-CVD.git
+cd AI-Data-Platform-CVD
+git rev-parse HEAD
+python3 -B warehouse-vss-demo/verify.py
+cd warehouse-vss-demo/deployment
+```
+
+Use `main` for this Warehouse candidate; the original `v1.0.0` CVD tag does
+not contain the Warehouse folder. Record the commit SHA printed above and
+keep that checkout for the installation. The verifier checks source integrity,
+links and syntax offline; it does not connect to OpenShift or deploy anything.
+
+Run the remaining command blocks from
+`AI-Data-Platform-CVD/warehouse-vss-demo/deployment` unless stated otherwise.
 
 ## 1. Start with the shared platform
 
